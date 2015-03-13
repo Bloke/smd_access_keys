@@ -115,8 +115,8 @@ if (!defined('txpinterface'))
 //       Query an access key and separate it into its component parts for convenient testing
 if (@txpinterface == 'admin') {
     global $smd_akey_event, $smd_akey_styles, $dbversion;
-    $smd_akey_event = 'smd_akey';
 
+    $smd_akey_event = 'smd_akey';
     $smd_akey_styles = array(
         'list' =>
          '.smd_hidden { display:none; }',
@@ -156,7 +156,9 @@ $smd_akey_prefs = array(
     ),
 );
 
-if (!defined('SMD_AKEYS')) define("SMD_AKEYS", 'smd_akeys');
+if (!defined('SMD_AKEYS')) {
+    define("SMD_AKEYS", 'smd_akeys');
+}
 
 register_callback('smd_access_protect_download', 'file_download');
 
@@ -192,6 +194,7 @@ function smd_akey_welcome($evt, $stp)
             smd_akey_table_remove(0);
             break;
     }
+
     return $msg;
 }
 
@@ -364,9 +367,11 @@ EOC;
                     $iplist[] = ($logging == 'none') ? $ip : eLink('log', 'log_list', 'search_method', 'ip', $ip, 'crit', $ip);
                 }
             }
+
             $dkey = $data['page'].'|'.$data['t_hex'];
             $timeparts = do_list($data['t_hex'], '-');
             $expiry = (isset($timeparts[1])) ? hexdec($timeparts[1]) : '';
+
             echo tr(
                 td('<a href="'.$data['page'].'">'.$data['page'].'</a>', '', 'page')
                 . td($data['triggah'])
@@ -450,6 +455,7 @@ function smd_akey_create()
     } else {
         $msg = array(gTxt('smd_akey_need_page'), E_ERROR);
     }
+
     smd_akey($msg);
 }
 
@@ -501,7 +507,7 @@ function smd_akey_prefs()
                 $subout[] = tda(yesnoRadio($idx, $val),' class="noline"');
             break;
         }
-        $out[] = tr(join(n ,$subout));
+        $out[] = tr(join(n, $subout));
     }
 
     $out[] = tr(tda('&nbsp;', ' class="noline"') . tda(fInput('submit', '', gTxt('save'), 'publish'), ' class="noline"'));
@@ -534,21 +540,22 @@ function smd_akey_table_install($showpane = '1')
     $sql = array();
 
     // Use 'triggah' and 'maximum' because 'trigger' and 'max' are reserved words.
-    $sql[] = "CREATE TABLE IF NOT EXISTS `".PFX.SMD_AKEYS."` (
-        `page` varchar(255) NOT NULL default '',
-        `t_hex` varchar(17) NOT NULL default '',
-        `time` int(14) NOT NULL default 0,
-        `secret` varchar(255) NOT NULL default '',
-        `triggah` varchar(255) NULL default '',
-        `maximum` int(11) NULL default 0,
-        `accesses` int(11) NULL default 0,
-        `ip` text NOT NULL default '',
+    $sql[] = "CREATE TABLE IF NOT EXISTS `" . PFX . SMD_AKEYS . "` (
+        `page` varchar(255) default '',
+        `t_hex` varchar(17) default '',
+        `time` int(14) default 0,
+        `secret` varchar(255) default '',
+        `triggah` varchar(255) default '',
+        `maximum` int(11) default 0,
+        `accesses` int(11) default 0,
+        `ip` text,
         PRIMARY KEY (`page`,`t_hex`)
     ) ENGINE=MyISAM";
 
     if (gps('debug')) {
         dmp($sql);
     }
+
     foreach ($sql as $qry) {
         $ret = safe_query($qry);
         if ($ret===false) {
@@ -579,11 +586,13 @@ function smd_akey_table_remove()
     $ret = '';
     $sql = array();
     $GLOBALS['txp_err_count'] = 0;
+
     if (smd_akey_table_exist()) {
         $sql[] = "DROP TABLE IF EXISTS " .PFX.SMD_AKEYS. "; ";
         if (gps('debug')) {
             dmp($sql);
         }
+
         foreach ($sql as $qry) {
             $ret = safe_query($qry);
             if ($ret===false) {
@@ -593,6 +602,7 @@ function smd_akey_table_remove()
             }
         }
     }
+
     if ($GLOBALS['txp_err_count'] == 0) {
         $msg = gTxt('smd_akey_tbl_removed');
     } else {
@@ -608,6 +618,7 @@ function smd_akey_table_exist($type = '')
 
     // Upgrade check
     $ver = get_pref('smd_akey_installed_version', '');
+
     if (!$ver || $plugins_ver['smd_access_keys'] != $ver) {
         // Increase the size of the t_hex field to allow for expiry times
         $ret = @safe_field("CHARACTER_MAXIMUM_LENGTH", "INFORMATION_SCHEMA.COLUMNS", "table_name = '".PFX.SMD_AKEYS."' AND table_schema = '" . $DB->db . "' AND column_name = 't_hex'");
@@ -652,7 +663,7 @@ function smd_access_key($atts, $thing = null)
         'max'          => '',
         'extra'        => '',
         'form'         => '',
-    ),$atts));
+    ), $atts));
 
     if (smd_akey_table_exist(1)) {
         $thing = (empty($form)) ? $thing : fetch_form($form);
@@ -702,14 +713,16 @@ function smd_access_key($atts, $thing = null)
         // Update/insert the remaining data
         $exists = safe_field('page', SMD_AKEYS, "page='".doSlash($page)."' AND t_hex='".doSlash($t_hex)."'");
         $maxinfo = '';
+
         if ($max) {
             $maxinfo = ", maximum = '".doSlash($max)."', accesses = '0'";
         }
+
         if ($exists) {
             safe_update(SMD_AKEYS, "triggah='".doSlash($trigger)."', time='".doSlash($ts)."', secret='".doSlash($secret)."'" . $maxinfo, "page='".doSlash($page)."' AND t_hex='".doSlash($t_hex)."'");
         } else {
             safe_insert(SMD_AKEYS, "page='".doSlash($page)."', t_hex='".doSlash($t_hex)."', triggah='".doSlash($trigger)."', secret='".doSlash($secret)."', time='".doSlash($ts)."'" . $maxinfo);
-       }
+        }
 
         // Tack on max if applicable
         $max_safe = $max;
@@ -760,7 +773,7 @@ function smd_access_protect($atts, $thing = null)
         'section_mode' => '0',
         'force'        => '0',
         'expires'      => '3600', // in seconds
-    ),$atts));
+    ), $atts));
 
     if (smd_akey_table_exist(1)) {
         $url = serverSet('REQUEST_URI');
@@ -789,6 +802,7 @@ function smd_access_protect($atts, $thing = null)
         $trigger = $triggers[0]; // Initialise to the first value in case no others are found
 
         $trigoff = false;
+
         foreach ($triggers as $trig) {
             switch ($trigger_mode) {
                 case 'exact':
@@ -831,6 +845,7 @@ function smd_access_protect($atts, $thing = null)
                     }
                 break;
             }
+
             if ($trigoff !== false) {
                 // Found it so set the trigger to be the current item and jump out
                 $trigoff = ($trigger == 'file_download') ? $trigoff + 2 : $trigoff;
@@ -979,6 +994,7 @@ function smd_access_protect($atts, $thing = null)
                                     } else {
                                         $ipup = '';
                                     }
+
                                     safe_update(SMD_AKEYS, "accesses='".doSlash($vu_qty)."'" . $ipup, "page='".doSlash($page)."' AND t_hex = '".doSlash($t_hex)."'");
 
                                     // Load up the global array so <txp:smd_access_info> and <txp:if_smd_access_info> work
@@ -1102,7 +1118,7 @@ function smd_if_access_error($atts, $thing = null)
     extract(lAtts(array(
         'type'   => '',
         'code'   => '',
-    ),$atts));
+    ), $atts));
 
     $err = array();
     $codes = do_list($code);
@@ -1139,7 +1155,7 @@ function smd_access_error($atts, $thing = null)
         'html_id'    => '',
         'break'      => '',
         'breakclass' => '',
-    ),$atts));
+    ), $atts));
 
     $out = array();
     $items = do_list($item);
@@ -1173,13 +1189,14 @@ function smd_access_info($atts, $thing = null)
         'html_id'    => '',
         'break'      => '',
         'breakclass' => '',
-    ),$atts));
+    ), $atts));
 
     $out = array();
     $items = do_list($item);
 
     foreach ($items as $idx) {
         $ak_idx = 'ak_'.$idx;
+
         if ($smd_akey_protected_info && array_key_exists($idx, $smd_akey_protected_info)) {
             $val = ($escape == 'html') ? htmlspecialchars($smd_akey_protected_info[$idx]) : $smd_akey_protected_info[$idx];
             if (in_array($idx, array('time', 'now', 'expires')) && $format) {
@@ -1187,6 +1204,7 @@ function smd_access_info($atts, $thing = null)
             }
             $out[] = $val;
         }
+
         if ($smd_akey_info && array_key_exists($ak_idx, $smd_akey_info)) {
             $val = ($escape == 'html') ? htmlspecialchars($smd_akey_info[$ak_idx]) : $smd_akey_info[$ak_idx];
             if (in_array($idx, array('time', 'now', 'expires')) && $format) {
