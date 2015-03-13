@@ -1,0 +1,14 @@
+h1. Changelog
+
+h2. 0.11 - 2012-01-30
+
+* Added @expires@ to smd_access_key
+* Added @section_mode@ attribute
+* Plays nicely with gbp_permanent_links (thanks jakob)
+* Fixed no-criteria output
+* Fixed subdir URL error
+* Fixed URL decoding (thanks sacripant)
+
+h2. 0.10 - 2011-04-18
+
+* Initial release
