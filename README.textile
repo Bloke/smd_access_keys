@@ -30,33 +30,38 @@ h2. Tag: @<txp:smd_access_key />@
 
 Generates an access token for a given URL. Configure it using the following attributes:
 
-; %(atnm)url%
-: The URL of the resource you want to protect. Can be either a fully qualified URL or relative.
+; %url%
+: The URL of the resource you want to protect. Can be either a fully-qualified URL or relative.
 : Default: the current page
-; %(atnm)trigger%
+; %trigger%
 : This string is added to your url so the plugin knows it is protected content.
 : Default: @smd_akey@
-; %(atnm)site_name%
+; %site_name%
 : Whether to automatically add the site name (http://site.com) to the URL or not. Choose from:
 :: 0: leave the site out
 :: 1: add the site URL (but only if its not in the URL already)
 : Default: 1
-; %(atnm)section_mode%
+; %section_mode%
 : If you are trying to protect a section landing page (i.e. not an article) then you will likely receive a 404 error when trying to access URLs that entirely use '/' as their separator. By setting @section_mode="1"@ you tell the plugin to separate the page URL from the access key information with a '?' instead.
 : Note this means you cannot use the plugin with the messy mode URL structure, nor can you pass any traditional URL parameters to the page. You can, however, encode such parameters into the @extra@ area of the key.
 : Default: 0
-; %(atnm)secret%
+; %secret%
 : A secret key used to unlock the page. Choose any text you wish here or leave blank to have the plugin choose a random number for you.
-; %(atnm)start%
+; %strength%
+: The mechanism used to generate the salt, or the salt itself. In all cases, the salt length will be constrained by the plugin preference value. Choose from the following options:
+: @SMD_SSL_RAND@: Use PHP's cryptographically-secure @openssl_random_pseudo_bytes()@ function, if available (requires PHP 5.3.0+). If it's not available, it will default to the SMD_MD5 mechanism. It is highly recommended to migrate to this scheme if at all possible.
+: @SMD_MD5@: Use standard @md5()@ and @uniqid()@ functions. These are *not* cryptographically secure, and were the default for plugin versions prior to v0.20.
+: @<your own salt>@: Use your own salt value. This option permits you to generate your own cryptographically-secure salt if you wish (e.g. to compute some salt prior to calling this tag and injecting it here). *Your salt MUST change every time* unless you really, really know what you are doing, and take suitable precautions. See "Example 4":#smd_akey_eg4.
+; %start%
 : An English-formatted date stamp from when you want the resource to become available. It is often best to use @YYYY-MMM-DD HH:MM:SS@ format as it is the least ambiguous.
 : Default: empty (i.e. now)
-; %(atnm)expires%
+; %expires%
 : An English-formatted date stamp at which you wish the resource to expire, OR an offset beginning with '+', for example @expires="+24 hours"@
 : Default: empty (i.e. no key expiry: get the expiry information from the protected resource itself)
-; %(atnm)max%
+; %max%
 : If you wish to limit the number of times this resource can be requested, set its value here.
 : Default: unset (i.e. unlimited)
-; %(atnm)extra%
+; %extra%
 : If you want to add any additional information to the URL (after the token) then specify it here. If set, a slash will be added to the URL and then your given content will be appended. It's up to you to ensure it is suitably encoded. Note that you can add multiple items, separating each with a slash character if you wish. Additional values added using this attribute are directly accessible using the @<txp:smd_access_info />@ tag
 
 A few words about this tag:
@@ -67,17 +72,17 @@ A few words about this tag:
 # Direct TXP file downloads can be protected too. Just supply @trigger="file_download"@ and @url="/file_download/<id>/<filename>"@. You will then not be permitted to access the site.com/file_download/<id> link without the access token being present. For this to be effective you should move your @/files@ directory out of a web-accessible location or employ an .htaccess file that forbids bypassing the @site.com/files/<filename>@ URL format. Note that TXP normally allows you to type anything after the @/id/@ as a filename and still retrieve the file; smd_access_key will not: the filename must match exactly
 # If the @start@ date is mangled in any way, the key will be generated 'now'
 # If the @expires@ is mangled in any way, no epxiry will be set
-# Your secret key is salted using a randomly generated salt. The default length of the salt is 8 characters but you can alter this via a "pref":#smd_akey_prefs
+# Your secret key is salted using a randomly-generated salt, or one of your own choosing. The default length of the salt is 8 characters but you can "alter this via a pref":#smd_akey_prefs
 # You may control the expiry time of _all_ of your direct file_download URLs by altering a "pref":#smd_akey_prefs
 
 h3. Example: Creating a key
 
-bc(block). <txp:smd_access_key
+bc. <txp:smd_access_key
      url="/music/next-big-hit" trigger="demo" />
 
 This might generate an access-controlled URL such as the following (newlines just for clarity):
 
-bc(block). http://site.com/music/next-big-hit/demo/
+bc. http://site.com/music/next-big-hit/demo/
      42c531d13423eecaaab73a2df43a8b7c337a360a/4d9d12a5
 
 Send that link to your friend and she'll be able to listen to your cool new demo song.
@@ -92,28 +97,28 @@ Once you've generated a key, it's time to protect all or part of your chosen URL
 
 Configure the plugin with the following attributes:
 
-; %(atnm)trigger%
+; %trigger%
 : The same trigger you specified in your @<txp:smd_access_key />@ tag. You may specify a partial trigger if utilising @trigger_mode@.
 : Default: @smd_akey@
-; %(atnm)trigger_mode%
+; %trigger_mode%
 : Usually you'll want the trigger to match exactly, but you may wish to match some part of the trigger (for a practical example of this, see "example 3":#smd_akey_eg3). Choose from:
 :: *exact* : (default) incoming token's trigger must exactly match the @trigger@ attribute
 :: *begins* : incoming token's trigger must begin with @trigger@
 :: *ends* : incoming token's trigger must end with @trigger@
 :: *contains* : incoming token's trigger must contain the text given in @trigger@
 : Default: @exact@
-; %(atnm)site_name%
+; %site_name%
 : Add the site prefix to the URL when trying to figure out if the resource is protected. This functions identically to the attribute in the @<txp:smd_access_key />@ tag and, ideally, they should match.
 : Default: 1 (yes)
-; %(atnm)section_mode%
+; %section_mode%
 : Works in an identical manner to the attribute in the @<txp:smd_access_key />@ tag and they should match.
 : Default: 0 (no)
-; %(atnm)force%
+; %force%
 : Controls content availability. This is one method of putting the token generation tag and the protected content on the same page. Choose from:
 :: 0: permit the resource to be directly accessible
 :: 1: the content is unavailable even if you _don't_ specify the access token in the URL (e.g. if you directly visit @/music/next-big-hit@)
 : Default: 0
-; %(atnm)expires%
+; %expires%
 : The time, in seconds, after which the resource will cease to be available. Set to 0 for unlimited time.
 : If you have set an expiry in the key itself, this attribute is ignored when that key is presented.
 : Default: 3600 (1 hour)
@@ -122,13 +127,13 @@ Configure the plugin with the following attributes:
 
 In our music example you'll probably want to put the following tag at the top of the page:
 
-bc(block). <txp:smd_access_protect expires="86400" trigger="demo" force="1" />
+bc. <txp:smd_access_protect expires="86400" trigger="demo" force="1" />
 
 So nobody can visit that page unless they have been given a valid access token URL. The song will be available for listening for just one day from the moment the token is generated.
 
 Alternatively, you might allow people to see the surrounding page and just wrap the mp3 itself with the tag:
 
-bc(block). <txp:smd_access_protect expires="86400" trigger="demo">
+bc. <txp:smd_access_protect expires="86400" trigger="demo">
   <object type="/audio/mpeg" data="/music/next-big-hit.mp3" />
 </txp:smd_access_protect>
 
@@ -140,7 +145,7 @@ h2. Tag: @<txp:smd_if_access_error />@
 
 Conditional tag that triggers the contained content if access was denied for some reason.  Supports @<txp:else />@. Attributes:
 
-; %(atnm)type%
+; %type%
 : Comma-delimited list of one or more of the following access types. The corresponding HTTP error status code thrown is given in parentheses:
 :: *smd_akey_err_bad_token* (403) : if the access token in the URL is too long/short
 :: *smd_akey_err_expired* (410) :  if the resource has passed its expiry
@@ -150,7 +155,7 @@ Conditional tag that triggers the contained content if access was denied for som
 :: *smd_akey_err_missing_timestamp* (403) : the timestamp portion of the access key is missing from the URL
 :: *smd_akey_err_unavailable* (410) : the resource isn't yet available (the start time hasn't been reached)
 :: *smd_akey_err_unauthorized* (401) : the resource isn't one that has been protected by this access key
-; %(atnm)code%
+; %code%
 : Comma-delimited list of one or more of the access codes given in the above list
 
 Without any attributes, the tag triggers the contained content on any error. If you specify many @type@s then _any_ of the listed types that match will return true. The same goes for @code@s. If you use the two in tandem then the error must match one of the types AND one of the codes to return true.
@@ -159,29 +164,29 @@ h2. Tag: @<txp:smd_access_error />@
 
 Display an access error message/code. Typically used inside @<txp:smd_if_access_error>@. Attributes:
 
-; %(atnm)item%
+; %item%
 : Which error information to display. Comma-separate the values if you wish to use both. Choose from:
 :: @message@: the error string
 :: @code@: the status code
 : Default: @message@
-; %(atnm)message%
+; %message%
 : Display this message instead of the plugin default message.
-; %(atnm)wraptag%
+; %wraptag%
 : HTML tag (without angle brackets) to wrap around the output.
-; %(atnm)class%
+; %class%
 : CSS class name to apply to the wraptag.
-; %(atnm)html_id%
+; %html_id%
 : HTML ID to apply to the wraptag.
-; %(atnm)break%
+; %break%
 : HTML tag (without angle brackets) to wrap around each item.
-; %(atnm)breakclass%
+; %breakclass%
 : CSS class name to apply to each break tag
 
 h2. Tag: @<txp:smd_access_info />@
 
 Display access information from the current protected page. Attributes:
 
-; %(atnm)item%
+; %item%
 : One or more of the following items (comma-delimited):
 :: *page* : the URL that matches the current access key
 :: *trigger* : the trigger for the current key, as given in the URL
@@ -195,21 +200,21 @@ Display access information from the current protected page. Attributes:
 :: *extra* : the full string as given in the @extra@ attribute
 :: *extra_N* (where N is an integer beginning at 1) : if you have specified many values in your @extra@, each separated with a slash, this displays the given individual item
 : Default: @page@
-; %(atnm)escape%
+; %escape%
 : Whether to escape HTML entities such as @<@, @>@ and @&@ in the item. Set @escape=""@ to turn this off.
 : Defualt: @html@
-; %(atnm)format%
+; %format%
 : If displaying a time-related item (now, issued, or expires) you can format it using the "strftime() formatting codes":http://php.net/manual/en/function.strftime.php.
 : Default: @%Y-%m-%d %H:%M:%S@
-; %(atnm)wraptag%
+; %wraptag%
 : HTML tag (without angle brackets) to wrap around the output.
-; %(atnm)class% :
+; %class% :
 CSS class name to apply to the wraptag.
-; %(atnm)html_id%
+; %html_id%
 : HTML ID to apply to the wraptag.
-; %(atnm)break%
+; %break%
 : HTML tag (without angle brackets) to wrap around each item.
-; %(atnm)breakclass%
+; %breakclass%
 : CSS class name to apply to each break tag.
 
 h2. Admin side interface
@@ -229,19 +234,19 @@ h2(#smd_akey_prefs). Preferences
 
 The plugin exposes some global preference settings that govern its operation:
 
-; %(atnm)File download expiry time%
+; %File download expiry time%
 : Time, in seconds, after which your file downloads will expire, following generation of an access key.
 : Default: 3600 (1 hour)
-; %(atnm)Salt length%
+; %Salt length%
 : Number of characters to use as a salt in your secret key. The default is usually fine but if you want to alter this for greater/reduced security then do so. IMPORTANT: if you change this value, all your existing access keys become instantly invalid.
 : Default: 8
-; %(atnm)Log IP addresses%
+; %Log IP addresses%
 : Whether you wish the plugin to log the IP address of each visitor who tries to access a protected resource
 : Default: no
 
 h2(#smd_akey_eg1). Example 1: Protect part of a page
 
-bc(block). <txp:smd_access_protect
+bc. <txp:smd_access_protect
      trigger="leaflets" force="1" expires="86400">
    <p>Your leaflet contents goes here</p>
 <txp:else />
@@ -259,7 +264,7 @@ bc(block). <txp:smd_access_protect
 
 h2(#smd_akey_eg2). Example 2: Protect multiple resources with one tag
 
-bc(block). <txp:smd_access_protect
+bc. <txp:smd_access_protect
      trigger="leaflet, book" expires="86400">
    <p>Your <txp:smd_access_info item="trigger" />
           contents goes here</p>
@@ -276,7 +281,7 @@ h2(#smd_akey_eg3). Example 3: Issue a registration activation code
 
 In your registration e-mail form, you could put something like this:
 
-bc(block). Thank you for registering with <txp:site_name />.
+bc. Thank you for registering with <txp:site_name />.
 To activate your account, please visit the following
 link within the next 24 hours:
 <txp:smd_access_key url="/account/activate/" max="1"
@@ -284,7 +289,7 @@ link within the next 24 hours:
 
 Once the visitor has signed up they are e-mailed a unique access token to the @/account/activate@ page. You can protect it like this:
 
-bc(block). <txp:smd_access_protect trigger="user_id."
+bc. <txp:smd_access_protect trigger="user_id."
      trigger_mode="begins" expires="86400" force="1">
    <txp:hide> Activation actions could go here </txp:hide>
    <p>Congratulations, your account is activated.</p>
@@ -294,7 +299,7 @@ bc(block). <txp:smd_access_protect trigger="user_id."
 
 If necessary, you could employ @str_replace()@ (or @<txp:rah_replace />@) to remove the @user_id.@ and be left with the user name of the registered user name, suitable for display. Alternatively -- and perhaps easier -- you could pass the author as an @extra@ parameter when the key is generated:
 
-bc(block). <txp:smd_access_key url="/account/activate/" max="1"
+bc. <txp:smd_access_key url="/account/activate/" max="1"
      trigger="user_id" extra='<txp:author title="0" />' />
 
 This allows you to use the default @trigger_mode@ and has the benefit that you can directly access the additional piece of information using @<txp:smd_access_info item="extra_1" />@.
@@ -306,6 +311,48 @@ The @extra@ attribute is even more powerful if you pack more information into it
 * @<txp:smd_access_info item="extra_2" />@ => @account@
 
 Note that you can only extract each piece individually if you use a slash as a separator in your @extra@ attribute.
+
+h2(#smd_akey_eg4). Example 4: Use the same key
+
+You will often use smd_access_key in response to a user action, such as paying for access to a resource. In this situation, you would normally email an access key upon successful payment. But sometimes you may wish to return control to your website and show the access key on-screen so there is no permanent record of it.
+
+The trouble with this approach is that if the person refreshes the screen, they will get a different access key to the same resource, thereby effectively having the ability to generate unlimited keys. This is undesirable.
+
+From v0.20 onwards, you may now specify your own salt, which can be used to create a static key. But it comes with some important security considerations:
+
+* Your salt is included in the access key itself and is thus plainly visible. This is not normally a security concern because the secret key protects the token, but to make a fixed key you need a static secret key too.
+* A static secret key *must* still be unique to the transaction. Never share a secret key between transactions or users or connections.
+* You will also need to use a static @start@ date and time. In this situation, a good value to use would be the order time.
+
+To understand this fully, it's important to grasp how an access token is generated. It consists of three parts:
+
+* A secret key (random string of hex digits), which is usually generated at runtime and is unique.
+* A salt (random string of hex digits), again, uniquely generated at runtime.
+* A timestamp (YYYY-MM-DD HH:mm:ss) which defaults to 'now', i.e. the very instant the @<txp:smd_access_key />@ tag is rendered.
+
+Assuming the URL of the resource doesn't change, if all three of the above components are identical on each page request, the same key will be generated. As this is our goal, here, let's design a system to do that:
+
+* Secret key: a hash of the buyer's username and the transaction ID, plus a fixed secret string of your own choosing.
+* Salt: a hash of the buyer's email address. The length of this must be greater than or equal to the value in the __Salt length__ preference, otherwise the token will not match.
+* Timestamp: the time of the transaction.
+
+So, for any given transaction, the above three items do not vary and will therefore generate the same key. But a transaction that occurs from someone else, even if it's at the exact same moment, will produce an entirely different, yet invariant, key.
+
+So here's some not-very-super-secure example code, assuming that you have the order information populated in some PHP variables. You probably wouldn't use @md5()@ here, but something altogether more cryptographically secure:
+
+bc.. <txp:variable name="secretKey"><txp:php>echo md5($username . $txnId . "I'mABadSecretKey");</txp:php></txp:variable>
+<txp:variable name="salt"><txp:php>echo md5($email);</txp:php></txp:variable>
+<txp:variable name="timestamp"><txp:php>echo $orderTime;</txp:php></txp:variable>
+
+<txp:smd_access_key
+   url='<txp:site_url /><txp:section />'
+   trigger="my-trigger"
+   secret='<txp:variable name="secretKey" />'
+   strength='<txp:variable name="salt" />'
+   start='<txp:variable name="timestamp" />'
+   />
+
+p. Ta da!
 
 h2. Author
 

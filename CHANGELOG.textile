@@ -1,5 +1,11 @@
 h1. Changelog
 
+h2. 0.20 - 2015-03-17
+
+* Added @strength@ attribute (thanks Dragondz)
+* Used cryptographically secure functions for token generation
+* Table creation complies with MySQL guidelines (thanks johnstephens)
+
 h2. 0.11 - 2012-01-30
 
 * Added @expires@ to smd_access_key
