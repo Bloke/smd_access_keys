@@ -98,22 +98,22 @@ if (!defined('txpinterface'))
 /**
  * smd_access_keys
  *
- * A Textpattern CMS plugin for secure tokenized access to resources:
+ * A Textpattern CMS plugin for secure tokenized access to resources. Features:
  *  -> Time-based or access attempt limits
  *  -> Untamperable URL-based keys
  *  -> Optional IP logging
  *
  * @author Stef Dawson
  * @link   http://stefdawson.com/
+ * @todo Add shortcut to send a newly-generated admin-side key to a user? (dropdown of users + e-mail template in prefs?)
+ * @todo Add auto-deletion of expired keys pref:
+ *       -> File download keys can be deleted on any key access (expiry window is known via prefs).
+ *       -> Other key accesses can only be deleted when that key is used.
+ *       -> Configurable grace period after expiry, before deletion.
+ * @todo Obfusctaed URLs?
+ * @todo Query an access key and separate it into its component parts for convenient testing.
  */
-// TODO: Add shortcut to send a newly-generated admin-side key to a user? (dropdown of users + e-mail template in prefs?)
-//       Add auto-deletion of expired keys pref:
-//        -> File download keys can be deleted on any key access (expiry window is known via prefs)
-//        -> Other key accesses can only be deleted when that key is used
-//        -> Configurable grace period after expiry, before deletion
-//       Obfusctaed URLs (see http://radioartnet.net/11/2011/07/05/samuel-beckett-words-and-music/)
-//       Query an access key and separate it into its component parts for convenient testing
-if (@txpinterface == 'admin') {
+if (txpinterface === 'admin') {
     global $smd_akey_event, $smd_akey_styles, $dbversion;
 
     $smd_akey_event = 'smd_akey';
@@ -134,6 +134,15 @@ if (@txpinterface == 'admin') {
     register_callback('smd_akey_prefs', 'plugin_prefs.smd_access_keys');
 }
 
+/**
+ * Keys used on the prefs screen.
+ *
+ * Displayed this way to help ied_plugin_composer find them:
+ *  gTxt('smd_akey')
+ *  gTxt('smd_akey_file_download_expires')
+ *  gTxt('smd_akey_salt_length')
+ *  gTxt('smd_akey_log_ip')
+ */
 global $smd_akey_prefs;
 $smd_akey_prefs = array(
     'smd_akey_file_download_expires' => array(
@@ -162,10 +171,15 @@ if (!defined('SMD_AKEYS')) {
 
 register_callback('smd_access_protect_download', 'file_download');
 
-// ********************
-// ADMIN SIDE INTERFACE
-// ********************
-// Jump off point for event/steps
+/**
+ * ADMIN SIDE INTERFACE
+ * ====================
+ *
+ * Jump off point for event/steps.
+ *
+ * @param string $evt (req) Textpattern event
+ * @param string $stp (req) Textpattern step
+ */
 function smd_akey_dispatcher($evt, $stp)
 {
     if (!$stp or !in_array($stp, array(
@@ -181,10 +195,17 @@ function smd_akey_dispatcher($evt, $stp)
     } else $stp();
 }
 
-// Bootstrap when installed/deleted
+/**
+ * Bootstrap when plugin installed/deleted.
+ *
+ * @param  string $evt (req) Textpattern event
+ * @param  string $stp (req) Textpattern step
+ * @return string Notification message
+ */
 function smd_akey_welcome($evt, $stp)
 {
     $msg = '';
+
     switch ($stp) {
         case 'installed':
             smd_akey_table_install(0);
@@ -198,7 +219,12 @@ function smd_akey_welcome($evt, $stp)
     return $msg;
 }
 
-// Main admin interface
+/**
+ * Main admin interface
+ *
+ * @param  string $msg (opt) Flash status message to display
+ * @return HTML Page content
+ */
 function smd_akey($msg = '')
 {
     global $smd_akey_event, $smd_akey_list_pageby, $smd_akey_styles, $logging, $smd_akey_prefs;
@@ -285,10 +311,10 @@ function smd_akey($msg = '')
 
         echo n.smd_akey_search_form($crit, $search_method).'</div>';
 
-        // Retrieve the secret keyring table entries
+        // Retrieve the secret keyring table entries.
         $secring = safe_rows('*', SMD_AKEYS, "$criteria order by $sort_sql limit $offset, $limit");
 
-        // Set up the buttons and column info
+        // Set up the buttons and column info.
         $newbtn = '<a class="navlink" href="#" onclick="return smd_akey_togglenew();">'.gTxt('smd_akey_btn_new').'</a>';
         $prefbtn = '<a class="navlink" href="?event='.$smd_akey_event.a.'step=smd_akey_prefs">'.gTxt('smd_akey_btn_pref').'</a>';
         $showip = get_pref('smd_akey_log_ip', $smd_akey_prefs['smd_akey_log_ip']['default'], 1);
@@ -314,10 +340,10 @@ jQuery(function() {
 });
 </script>
 EOC;
-        // Inject styles
+        // Inject styles.
         echo '<style type="text/css">' . $smd_akey_styles['list'] . '</style>';
 
-        // Access key list
+        // Access key list.
         echo n.'<div id="'.$smd_akey_event.'_container" class="txp-container txp-list">';
         echo '<form name="longform" id="smd_akey_form" action="index.php" method="post" onsubmit="return verify(\''.gTxt('are_you_sure').'\')">';
         echo startTable('list');
@@ -346,7 +372,7 @@ EOC;
         echo '</tfoot>';
         echo '<tbody>';
 
-        // New access key row
+        // New access key row.
         echo '<tr id="smd_akey_create" class="smd_hidden">';
         echo td(fInput('hidden', 'step', 'smd_akey_multi_edit', '', '', '', '', '', 'smd_akey_step').fInput('text', 'smd_akey_newpage', '', 'smd_focus', '', '', '60'))
             .td(fInput('text', 'smd_akey_triggah', ''))
@@ -358,7 +384,7 @@ EOC;
             .td(fInput('submit', 'smd_akey_add', gTxt('add'), 'smallerbox', '', '', '', '', 'smd_akey_add'));
         echo '</tr>';
 
-        // Remaining access keys
+        // Remaining access keys.
         foreach ($secring as $secidx => $data) {
             if ($showip) {
                 $ips = do_list($data['ip'], ' ');
@@ -394,7 +420,7 @@ EOC;
             n.'</div>'.n.'</div>';
 
     } else {
-        // Table not installed
+        // Table not installed.
         $btnInstall = '<form method="post" action="?event='.$smd_akey_event.a.'step=smd_akey_table_install" style="display:inline">'.fInput('submit', 'submit', gTxt('smd_akey_tbl_install_lbl'), 'smallerbox').'</form>';
         $btnStyle = ' style="border:0;height:25px"';
         echo startTable('list');
@@ -407,14 +433,22 @@ EOC;
     }
 }
 
-// Change and store qty-per-page value
+/**
+ * Change and store qty-per-page value.
+ */
 function smd_akey_change_pageby()
 {
     event_change_pageby('smd_akey');
     smd_akey();
 }
 
-// The search dropdown list
+/**
+ * The search dropdown list.
+ *
+ * @param  string $crit   (req) Search criteria
+ * @param  string $method (req) Search method (field used)
+ * @return HTML Search form
+ */
 function smd_akey_search_form($crit, $method)
 {
     global $smd_akey_event, $smd_akey_prefs;
@@ -435,13 +469,15 @@ function smd_akey_search_form($crit, $method)
     return search_form($smd_akey_event, '', $crit, $methods, $method, 'page');
 }
 
-// Create a key from the admin side's 'New key' button
+/**
+ * Create a key from the admin side's 'New key' button.
+ */
 function smd_akey_create()
 {
     extract(gpsa(array('smd_akey_newpage', 'smd_akey_triggah', 'smd_akey_time', 'smd_akey_expires', 'smd_akey_maximum')));
 
     if ($smd_akey_newpage) {
-        // Just call the public tag with the relevant options
+        // Just call the public tag with the relevant options.
         $key = smd_access_key(
             array(
                 'url'     => $smd_akey_newpage,
@@ -459,7 +495,9 @@ function smd_akey_create()
     smd_akey($msg);
 }
 
-// Handle submission of the multi-edit dropdown options
+/**
+ * Handle submission of the multi-edit dropdown options.
+ */
 function smd_akey_multi_edit()
 {
     $selected = gps('selected');
@@ -483,7 +521,11 @@ function smd_akey_multi_edit()
     smd_akey($msg);
 }
 
-// Display the prefs
+/**
+ * Display the prefs.
+ *
+ * @return HTML Page sub-content.
+ */
 function smd_akey_prefs()
 {
     global $smd_akey_event, $smd_akey_prefs;
@@ -517,7 +559,9 @@ function smd_akey_prefs()
     echo join(n, $out);
 }
 
-// Save the prefs
+/**
+ * Save the prefs.
+ */
 function smd_akey_prefsave()
 {
     global $smd_akey_event, $smd_akey_prefs;
@@ -532,7 +576,11 @@ function smd_akey_prefsave()
     smd_akey($msg);
 }
 
-// Add akey table if not already installed
+/**
+ * Add the smd_akeys table if not already installed.
+ *
+ * @param bool $showpane (opt) Whether to operate silently or display the admin interface on completion
+ */
 function smd_akey_table_install($showpane = '1')
 {
     $GLOBALS['txp_err_count'] = 0;
@@ -560,12 +608,12 @@ function smd_akey_table_install($showpane = '1')
         $ret = safe_query($qry);
         if ($ret===false) {
             $GLOBALS['txp_err_count']++;
-            echo "<b>".$GLOBALS['txp_err_count'].".</b> ".mysql_error()."<br />\n";
+            echo "<b>".$GLOBALS['txp_err_count'].".</b> " . mysql_error() . "<br />\n";
             echo "<!--\n $qry \n-->\n";
         }
     }
 
-    // Spit out results
+    // Spit out results.
     if ($GLOBALS['txp_err_count'] == 0) {
         if ($showpane) {
             $msg = gTxt('smd_akey_tbl_installed');
@@ -579,8 +627,9 @@ function smd_akey_table_install($showpane = '1')
     }
 }
 
-// ------------------------
-// Drop table if in database
+/**
+ * Drop smd_akeys table if in database.
+ */
 function smd_akey_table_remove()
 {
     $ret = '';
@@ -588,7 +637,7 @@ function smd_akey_table_remove()
     $GLOBALS['txp_err_count'] = 0;
 
     if (smd_akey_table_exist()) {
-        $sql[] = "DROP TABLE IF EXISTS " .PFX.SMD_AKEYS. "; ";
+        $sql[] = "DROP TABLE IF EXISTS " .PFX . SMD_AKEYS. "; ";
         if (gps('debug')) {
             dmp($sql);
         }
@@ -597,7 +646,7 @@ function smd_akey_table_remove()
             $ret = safe_query($qry);
             if ($ret===false) {
                 $GLOBALS['txp_err_count']++;
-                echo "<b>".$GLOBALS['txp_err_count'].".</b> ".mysql_error()."<br />\n";
+                echo "<b>".$GLOBALS['txp_err_count'].".</b> " . mysql_error() . "<br />\n";
                 echo "<!--\n $qry \n-->\n";
             }
         }
@@ -611,12 +660,17 @@ function smd_akey_table_remove()
     }
 }
 
-// ------------------------
+/**
+ * Check if the smd_akeys table exists.
+ *
+ * @param  bool $type (opt) Full check (1), or column count check
+ * @return bool | column count
+ */
 function smd_akey_table_exist($type = '')
 {
     global $plugins_ver, $DB;
 
-    // Upgrade check
+    // Upgrade check.
     $ver = get_pref('smd_akey_installed_version', '');
 
     if (!$ver || $plugins_ver['smd_access_keys'] != $ver) {
@@ -651,14 +705,57 @@ function smd_akey_table_exist($type = '')
     }
 }
 
-//**********************
-// PUBLIC SIDE INTERFACE
-//**********************
+/**
+ * Callback, issued just before a download is initiated.
+ *
+ * @param  string $evt (req) Textpattern event
+ * @param  string $stp (req) Textpattern step
+  */
+function smd_access_protect_download($evt, $stp)
+{
+    global $smd_akey_prefs, $id, $file_error;
+
+    if (smd_akey_table_exist(1) && !isset($file_error)) {
+        $fileid = intval($id);
+
+        // In case the page was called with a bogus filename, get the "true" filename
+        // from the database and make up the valid URL.
+        $real_file = safe_field("filename", "txp_file", "id=".doSlash($fileid));
+        $page = filedownloadurl($fileid, $real_file);
+        $secring = safe_field('page', SMD_AKEYS, "page='".doSlash($page)."'");
+
+        // Only want to protect pages that we've generated tokens for.
+        if ($secring) {
+            // Pass in a default expiry from the pref, but it can be overridden by the key's expiry.
+            return smd_access_protect(
+                array(
+                    'trigger' => 'file_download',
+                    'force'   => '1',
+                    'expires' => get_pref('smd_akey_file_download_expires', $smd_akey_prefs['smd_akey_file_download_expires']['default']),
+                )
+            );
+        }
+    }
+
+    // Remote download not done - leave to Txp to handle error or "local" file download.
+    return;
+}
+
+/**
+ * PUBLIC SIDE INTERFACE
+ * =====================
+ *
+ * Tag: Generate an access token.
+ *
+ * @param  array $atts  (req) Tag attribute list
+ * @param  array $thing (opt) Tag container content
+ * @return HTML
+ */
 function smd_access_key($atts, $thing = null)
 {
     global $smd_akey_prefs, $smd_akey_info;
 
-    // In case this tag is called from the admin side - needs parse()
+    // In case this tag is called from the admin side - needs parse().
     include_once txpath.'/publish.php';
 
     extract(lAtts(array(
@@ -685,12 +782,12 @@ function smd_access_key($atts, $thing = null)
 
         $smd_akey_salt_length = get_pref('smd_akey_salt_length', $smd_akey_prefs['smd_akey_salt_length']['default']);
 
-        // Without a URL, assume current page
+        // Without a URL, assume current page.
         $page = rtrim( (($url) ? $url : serverSet('REQUEST_URI')), '/');
 
         if ($site_name && (strpos($page, 'http') !== 0)) {
             // Can't use raw hu since it contains the subdir (as does the REQUEST_URI)
-            // so duplicate portions would occur in the generated URL
+            // so duplicate portions would occur in the generated URL.
             $urlparts = parse_url(hu);
             $page = $urlparts['scheme'] . '://' . $urlparts['host'] . $page;
         }
@@ -713,9 +810,9 @@ function smd_access_key($atts, $thing = null)
             $salt = substr($strength, 0, $smd_akey_salt_length);
         }
 
-        $plen = strlen($page) % 32; // Because 32 is the size of an md5 string and we don't want to fall off the end
+        $plen = strlen($page) % 32; // Because 32 is the size of an md5 string and we don't want to fall off the end.
 
-        // Generate a timestamp. The clock starts ticking from this moment
+        // Generate a timestamp. The clock starts ticking from this moment.
         $ts = ($start) ? safe_strtotime($start) : time();
         $ts = ($ts === false) ? time() : $ts;
         $t_hex = dechex($ts);
@@ -734,7 +831,7 @@ function smd_access_key($atts, $thing = null)
             }
         }
 
-        // Update/insert the remaining data
+        // Update/insert the remaining data.
         $exists = safe_field('page', SMD_AKEYS, "page='".doSlash($page)."' AND t_hex='".doSlash($t_hex)."'");
         $maxinfo = '';
 
@@ -748,16 +845,16 @@ function smd_access_key($atts, $thing = null)
             safe_insert(SMD_AKEYS, "page='".doSlash($page)."', t_hex='".doSlash($t_hex)."', triggah='".doSlash($trigger)."', secret='".doSlash($secret)."', time='".doSlash($ts)."'" . $maxinfo);
         }
 
-        // Tack on max if applicable
+        // Tack on max if applicable.
         $max_safe = $max;
         $max = ($max) ? '.'.$max : '';
 
-        // And any extra
+        // And any extra.
         $extratok = ($extra) ? '/'.$extra : '';
 
         // Create the raw token...
         $token = md5($salt.$secret.$page.$trigger.$t_hex.$max.$extra);
-        // ... and insert the salt partway through
+        // ... and insert the salt partway through.
         $salty_token = substr($token, 0, $plen) . $salt . substr($token, $plen);
         $tokensep = ($section_mode) ? '?' : '/';
         $key = $page . (($trigger) ? $tokensep . $trigger : '') . '/' . $salty_token . '/' . $t_hex . $max . $extratok;
@@ -781,11 +878,20 @@ function smd_access_key($atts, $thing = null)
     }
 }
 
-// Protect a page for a given time limit from the moment the
-// access token has been generated. Embed this tag at the top
-// of the page you want to protect or wrap it around part of a
-// page you wish to protect. The unique URL to the resource
-// is generated by <txp:smd_access_key />
+/**
+ * Tag: Protect a page resource.
+ *
+ * The resource is protected for a given time limit from the moment the
+ * access token has been generated.
+ *
+ * Embed this tag at the top of the page to protect, or wrap it around
+ * part of a page to protect. The unique URL to unlock the resource
+ * is generated by <txp:smd_access_key />.
+ *
+ * @param  array $atts  (req) Tag attribute list
+ * @param  array $thing (opt) Tag container content
+ * @return HTML Protected resource | error
+ */
 function smd_access_protect($atts, $thing = null)
 {
     global $smd_access_error, $smd_access_errcode, $smd_akey_protected_info, $smd_akey_prefs, $permlink_mode, $plugins;
@@ -805,7 +911,7 @@ function smd_access_protect($atts, $thing = null)
         if ($site_name && (strpos($url, hu) === false)) {
             $urlparts = parse_url(hu);
             // Can't use raw hu since it contains the subdir (as does the REQUEST_URI)
-            // so duplicates would occur in the generated URL
+            // so duplicates would occur in the generated URL.
             $url = $urlparts['scheme'] . '://' . $urlparts['host'] . $url;
         }
 
@@ -821,9 +927,9 @@ function smd_access_protect($atts, $thing = null)
 
         trace_add('[smd_access_key URL elements: ' . join('|', $parts).']');
 
-        // Look for one of the triggers in the URL and bomb out if we find it
+        // Look for one of the triggers in the URL and bomb out if we find it.
         $triggers = do_list($trigger);
-        $trigger = $triggers[0]; // Initialise to the first value in case no others are found
+        $trigger = $triggers[0]; // Initialise to the first value in case no others are found.
 
         $trigoff = false;
 
@@ -871,7 +977,7 @@ function smd_access_protect($atts, $thing = null)
             }
 
             if ($trigoff !== false) {
-                // Found it so set the trigger to be the current item and jump out
+                // Found it so set the trigger to be the current item and jump out.
                 $trigoff = ($trigger == 'file_download') ? $trigoff + 2 : $trigoff;
                 $trigger = $realTrig;
                 break;
@@ -890,16 +996,16 @@ function smd_access_protect($atts, $thing = null)
             $timeidx = $trigoff + 2;
             $extraidx = $trigoff + 3;
 
-            // OK, on a trigger page, so read the token from the URL
+            // OK, on a trigger page, so read the token from the URL.
             $tok = (isset($parts[$tokidx]) && strlen($parts[$tokidx]) == intval(32 + $smd_akey_salt_length)) ? $parts[$tokidx] : 0;
 
             trace_add('[smd_access_key token: ' . $tok .']');
 
             if ($tok) {
-                // The token is present, so read the timestamp from the URL
+                // The token is present, so read the timestamp from the URL.
                 $t_hex = (isset($parts[$timeidx])) ? $parts[$timeidx] : 0;
 
-                // Is there a download limit? Extract it if so
+                // Is there a download limit? Extract it if so.
                 $timeparts = do_list($t_hex, '.');
                 $max = (isset($timeparts[1])) ? $timeparts[1] : '0';
                 $maxtok = ($max) ? '.'.$max : '';
@@ -908,37 +1014,37 @@ function smd_access_protect($atts, $thing = null)
                 // Any extra info?
                 $extras = (isset($parts[$extraidx])) ? array_slice($parts, $extraidx) : array();
 
-                // Recreate the original page URL, sans /trigger/token/time
+                // Recreate the original page URL, sans /trigger/token/time.
                 if ($trigger == 'file_download') {
                     $trigoff++;
                     $trigger = '';
                 }
 
                 // gbp_permanent_links sets messy mode behind the scenes but still uses non-messy URLs
-                // so it requires an exception
+                // so it requires an exception.
                 $gbp_pl = (is_array($plugins) && in_array('gbp_permanent_links', $plugins));
 
                 if ($permlink_mode == 'messy' && !$gbp_pl) {
-                    // Don't want a slash between site and start of query params
+                    // Don't want a slash between site and start of query params.
                     $page = rtrim(join('/', array_slice($parts, 0, $trigoff-1)), '/') . $parts[$trigoff-1];
                 } else {
                     $page = rtrim(join('/', array_slice($parts, 0, $trigoff)), '/');
                 }
 
-                // In case the URL contains non-ascii chars
+                // In case the URL contains non-ascii chars.
                 $page = rawurldecode($page);
 
                 trace_add('[smd_access_key page | timestamp | max | extras: ' . join('|', array($page, $t_hex, $max, $extras)) . ']');
 
                 if ($t_hex) {
-                    // The timestamp is present. Next, get the secret key
+                    // The timestamp is present. Next, get the secret key.
                     $secret = false;
                     $secring = safe_row('*', SMD_AKEYS, "page='".doSlash($page)."' AND t_hex = '".doSlash($t_hex)."'");
 
                     if ($secring) {
                         $secret = $secring['secret'];
 
-                        // Extract the salt from the token
+                        // Extract the salt from the token.
                         $plen = strlen($page) % 32;
                         $salt = substr($tok, $plen, $smd_akey_salt_length);
                         $tok = substr($tok, 0, $plen).substr($tok, $plen+$smd_akey_salt_length);
@@ -949,11 +1055,11 @@ function smd_access_protect($atts, $thing = null)
 
                         trace_add('[smd_access_key reconstructed token: ' . $check_token . ']');
 
-                        // ... and compare it to the one in the URL
+                        // ... and compare it to the one in the URL.
                         if ($check_token == $tok) {
-                            // Token is valid. Now check if the page has expired
+                            // Token is valid. Now check if the page has expired.
 
-                            // Is there an explicit access key expiry? Extract that if so
+                            // Is there an explicit access key expiry? Extract that if so.
                             $timeparts = do_list($t_hex, '-');
                             $t_exp = (isset($timeparts[1])) ? hexdec($timeparts[1]) : '';
                             $t_beg = $timeparts[0];
@@ -987,7 +1093,7 @@ function smd_access_protect($atts, $thing = null)
                                         $smd_access_errcode = 410;
                                     }
                                 } else {
-                                    // Check if the download limit has been exceeded
+                                    // Check if the download limit has been exceeded.
                                     $vu_qty = $secring['accesses'];
                                     if ($max) {
                                         if ($vu_qty < $max) {
@@ -1004,10 +1110,10 @@ function smd_access_protect($atts, $thing = null)
                                         $ret = true;
                                     }
 
-                                    // Increment the access counter
+                                    // Increment the access counter.
                                     $vu_qty++;
 
-                                    // Grab the IP and add it to the list of IPs so far
+                                    // Grab the IP and add it to the list of IPs so far.
                                     if ($doip) {
                                         $ips = do_list($secring['ip'], ' ');
                                         $ip = remote_addr();
@@ -1021,7 +1127,7 @@ function smd_access_protect($atts, $thing = null)
 
                                     safe_update(SMD_AKEYS, "accesses='".doSlash($vu_qty)."'" . $ipup, "page='".doSlash($page)."' AND t_hex = '".doSlash($t_hex)."'");
 
-                                    // Load up the global array so <txp:smd_access_info> and <txp:if_smd_access_info> work
+                                    // Load up the global array so <txp:smd_access_info> and <txp:if_smd_access_info> work.
                                     $smd_akey_protected_info = array(
                                         'page'     => $secring['page'],
                                         'hextime'  => $secring['t_hex'],
@@ -1080,7 +1186,7 @@ function smd_access_protect($atts, $thing = null)
                 }
             }
         } else {
-            // If we always want to forbid access to this page regardless if the trigger exists
+            // If we always want to forbid access to this page regardless if the trigger exists.
             if ($force) {
                 if ($thing == null) {
                     txp_die(gTxt('smd_akey_err_forbidden'), 401);
@@ -1097,44 +1203,20 @@ function smd_access_protect($atts, $thing = null)
             trace_add('[smd_access_key error state: ' . $smd_access_errcode . '|' . $smd_access_error . ']');
         }
 
-        // If we reach this point it's because we're using a container
+        // If we reach this point it's because we're using a container.
         return parse(EvalElse($thing, $ret));
     } else {
         trigger_error(gTxt('smd_akey_tbl_not_installed'), E_USER_NOTICE);
     }
 }
 
-// Called just before a download is initiated
-function smd_access_protect_download($evt, $stp)
-{
-    global $smd_akey_prefs, $id, $file_error;
-
-    if (smd_akey_table_exist(1) && !isset($file_error)) {
-        $fileid = intval($id);
-
-        // In case the page was called with a bogus filename, get the "true" filename
-        // from the database and make up the valid URL
-        $real_file = safe_field("filename", "txp_file", "id=".doSlash($fileid));
-        $page = filedownloadurl($fileid, $real_file);
-        $secring = safe_field('page', SMD_AKEYS, "page='".doSlash($page)."'");
-
-        // Only want to protect pages that we've generated tokens for
-        if ($secring) {
-            // Pass in a default expiry from the pref, but it can be overridden by the key's expiry
-            return smd_access_protect(
-                array(
-                    'trigger' => 'file_download',
-                    'force'   => '1',
-                    'expires' => get_pref('smd_akey_file_download_expires', $smd_akey_prefs['smd_akey_file_download_expires']['default']),
-                )
-            );
-        }
-    }
-    // remote download not done - leave to Txp to handle error or "local" file download
-    return;
-}
-
-// Conditional tag for checking error status from smd_access_protect
+/**
+ * Conditional tag for checking error status from smd_access_protect.
+ *
+ * @param  array $atts  (req) Tag attribute list
+ * @param  array $thing (opt) Tag container content
+ * @return HTML
+ */
 function smd_if_access_error($atts, $thing = null)
 {
     global $smd_access_error, $smd_access_errcode;
@@ -1166,7 +1248,13 @@ function smd_if_access_error($atts, $thing = null)
     return parse(EvalElse($thing, $out));
 }
 
-// Display access error information
+/**
+ * Display access error information.
+ *
+ * @param  array $atts  (req) Tag attribute list
+ * @param  array $thing (opt) Tag container content
+ * @return HTML
+ */
 function smd_access_error($atts, $thing = null)
 {
     global $smd_access_error, $smd_access_errcode;
@@ -1199,7 +1287,13 @@ function smd_access_error($atts, $thing = null)
     return '';
 }
 
-// Display access information for custom formatted messages
+/**
+ * Display pieces of access information, for custom formatted messages.
+ *
+ * @param  array $atts  (req) Tag attribute list
+ * @param  array $thing (opt) Tag container content
+ * @return HTML
+ */
 function smd_access_info($atts, $thing = null)
 {
     global $smd_akey_protected_info, $smd_akey_info;
