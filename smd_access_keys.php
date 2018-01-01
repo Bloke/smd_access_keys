@@ -364,8 +364,7 @@ EOC;
         $multiOpts = array('smd_akey_delete' => gTxt('delete'));
 
         echo '<tfoot>' . tr(tda(
-                select_buttons()
-                .n.selectInput('smd_akey_multi_edit', $multiOpts, '', true)
+                selectInput('smd_akey_multi_edit', $multiOpts, '', true)
                 .n.eInput($smd_akey_event)
                 .n.fInput('submit', '', gTxt('go'), 'smallerbox')
             ,' class="multi-edit" colspan="' . (($showip) ? 7 : 6) . '" style="text-align: right; border: none;"'));
