@@ -582,6 +582,8 @@ function smd_akey_prefsave()
  */
 function smd_akey_table_install($showpane = '1')
 {
+    global $DB;
+
     $GLOBALS['txp_err_count'] = 0;
     $ret = '';
     $sql = array();
@@ -607,7 +609,7 @@ function smd_akey_table_install($showpane = '1')
         $ret = safe_query($qry);
         if ($ret===false) {
             $GLOBALS['txp_err_count']++;
-            echo "<b>".$GLOBALS['txp_err_count'].".</b> " . mysql_error() . "<br />\n";
+            echo "<b>".$GLOBALS['txp_err_count'].".</b> " . mysqli_error($DB->link) . "<br />\n";
             echo "<!--\n $qry \n-->\n";
         }
     }
@@ -631,6 +633,8 @@ function smd_akey_table_install($showpane = '1')
  */
 function smd_akey_table_remove()
 {
+    global $DB;
+
     $ret = '';
     $sql = array();
     $GLOBALS['txp_err_count'] = 0;
@@ -645,7 +649,7 @@ function smd_akey_table_remove()
             $ret = safe_query($qry);
             if ($ret===false) {
                 $GLOBALS['txp_err_count']++;
-                echo "<b>".$GLOBALS['txp_err_count'].".</b> " . mysql_error() . "<br />\n";
+                echo "<b>".$GLOBALS['txp_err_count'].".</b> " . mysqli_error($DB->link) . "<br />\n";
                 echo "<!--\n $qry \n-->\n";
             }
         }
