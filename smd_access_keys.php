@@ -56,6 +56,7 @@ $plugin['flags'] = '3';
 
 $plugin['textpack'] = <<<EOT
 #@smd_akey
+#@language en
 smd_akey => Access keys
 smd_akey_accesses => Access attempts
 smd_akey_btn_new => New key
@@ -88,6 +89,41 @@ smd_akey_tbl_not_installed => Table not installed
 smd_akey_tbl_not_removed => Table not removed
 smd_akey_tbl_removed => Table removed
 smd_akey_time => Issued
+smd_akey_trigger => Trigger
+#@smd_akey
+#@language it
+smd_akey => Chiavi di accesso
+smd_akey_accesses => Tentativi di accesso
+smd_akey_btn_new => Nuova chiave
+smd_akey_btn_pref => Preferenze
+smd_akey_deleted => Chiavi eliminate: {deleted}
+smd_akey_err_bad_token => Chiavi mancanti o deteriorate
+smd_akey_err_expired => Accesso scaduto
+smd_akey_err_forbidden => Accesso vietato
+smd_akey_err_invalid_token => Chiave di accesso non valida
+smd_akey_err_limit => Limite di accesso raggiunto
+smd_akey_err_missing_timestamp => Timestamp mancante
+smd_akey_err_unauthorized => Accesso non autorizzato
+smd_akey_err_unavailable => Non disponibile
+smd_akey_file_download_expires => Scadenza File download (in secondi)
+smd_akey_generated => Chiave di accesso: {key}
+smd_akey_log_ip => Registro indirizzi IP
+smd_akey_max => Massimo
+smd_akey_need_page => Devi inserire un URL di pagina
+smd_akey_page => Pagina
+smd_akey_prefs_saved => Preferenze salvate
+smd_akey_prefs_some_explain => Questa è o una nuova installazione o una versione<br />del plugin diversa da quella che avevi prima.
+smd_akey_prefs_some_opts => Clicca “Installa tabella” per aggiungere o aggiornare la tabella<br />lasciando intatti tutti i dati esistenti.
+smd_akey_prefs_some_tbl => Info tabella non tutte disponibili.
+smd_akey_pref_legend => Preferenze chiavi di accesso
+smd_akey_salt_length => lunghezza salt (in caratteri)
+smd_akey_tab_name => Chiavi di accesso
+smd_akey_tbl_installed => Tabella installata
+smd_akey_tbl_install_lbl => Installazione tabella
+smd_akey_tbl_not_installed => Tabella non installata
+smd_akey_tbl_not_removed => Tabella non rimossa
+smd_akey_tbl_removed => Tabella rimossa
+smd_akey_time => Emessa
 smd_akey_trigger => Trigger
 EOT;
 
