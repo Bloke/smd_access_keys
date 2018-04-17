@@ -168,6 +168,15 @@ if (txpinterface === 'admin') {
     register_callback('smd_akey_dispatcher', $smd_akey_event);
     register_callback('smd_akey_welcome', 'plugin_lifecycle.smd_access_keys');
     register_callback('smd_akey_prefs', 'plugin_prefs.smd_access_keys');
+} elseif (txpinterface === 'public') {
+    if (class_exists('\Textpattern\Tag\Registry')) {
+        Txp::get('\Textpattern\Tag\Registry')
+            ->register('smd_access_error')
+            ->register('smd_access_info')
+            ->register('smd_access_key')
+            ->register('smd_access_protect')
+            ->register('smd_if_access_error');
+    }
 }
 
 /**
