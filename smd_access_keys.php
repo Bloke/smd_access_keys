@@ -55,9 +55,10 @@ $plugin['flags'] = '3';
 // abc_string_name => Localized String
 
 $plugin['textpack'] = <<<EOT
+#@language en, en-gb, en-us
+#@admin-side
+tab_smd_akey => Access keys
 #@smd_akey
-#@language en
-smd_akey => Access keys
 smd_akey_accesses => Access attempts
 smd_akey_btn_new => New key
 smd_akey_btn_pref => Prefs
@@ -75,7 +76,6 @@ smd_akey_generated => Access key: {key}
 smd_akey_log_ip => Log IP addresses
 smd_akey_max => Maximum
 smd_akey_need_page => You need to enter a page URL
-smd_akey_page => Page
 smd_akey_prefs_saved => Preferences saved
 smd_akey_prefs_some_explain => This is either a new installation or a different version<br />of the plugin to one you had before.
 smd_akey_prefs_some_opts => Click "Install table" to add or update the table<br />leaving all existing data untouched.
@@ -90,9 +90,10 @@ smd_akey_tbl_not_removed => Table not removed
 smd_akey_tbl_removed => Table removed
 smd_akey_time => Issued
 smd_akey_trigger => Trigger
-#@smd_akey
 #@language it
-smd_akey => Chiavi di accesso
+#@admin-side
+tab_smd_akey => Chiavi di accesso
+#@smd_akey
 smd_akey_accesses => Tentativi di accesso
 smd_akey_btn_new => Nuova chiave
 smd_akey_btn_pref => Preferenze
@@ -110,7 +111,6 @@ smd_akey_generated => Chiave di accesso: {key}
 smd_akey_log_ip => Registro indirizzi IP
 smd_akey_max => Massimo
 smd_akey_need_page => Devi inserire un URL di pagina
-smd_akey_page => Pagina
 smd_akey_prefs_saved => Preferenze salvate
 smd_akey_prefs_some_explain => Questa è o una nuova installazione o una versione<br />del plugin diversa da quella che avevi prima.
 smd_akey_prefs_some_opts => Clicca “Installa tabella” per aggiungere o aggiornare la tabella<br />lasciando intatti tutti i dati esistenti.
@@ -148,15 +148,15 @@ if (!defined('txpinterface'))
  *       -> Configurable grace period after expiry, before deletion.
  * @todo Obfusctaed URLs?
  * @todo Query an access key and separate it into its component parts for convenient testing.
+ * @todo Make a single key to cover /category/type URLs somehow?
  */
+
+use Textpattern\Search\Filter;
+
 if (txpinterface === 'admin') {
-    global $smd_akey_event, $smd_akey_styles, $dbversion;
+    global $smd_akey_event, $dbversion;
 
     $smd_akey_event = 'smd_akey';
-    $smd_akey_styles = array(
-        'list' =>
-         '.smd_hidden { display:none; }',
-    );
 
     if (version_compare($dbversion, '4.6-dev') >= 0) {
         add_privs('prefs.smd_akey', '1,2,3');
@@ -172,11 +172,16 @@ if (txpinterface === 'admin') {
     if (class_exists('\Textpattern\Tag\Registry')) {
         Txp::get('\Textpattern\Tag\Registry')
             ->register('smd_access_error')
-            ->register('smd_access_info')
-            ->register('smd_access_key')
             ->register('smd_access_protect')
             ->register('smd_if_access_error');
     }
+}
+
+// Register these all the time, since they're used on the admin side too.
+if (class_exists('\Textpattern\Tag\Registry')) {
+    Txp::get('\Textpattern\Tag\Registry')
+        ->register('smd_access_info')
+        ->register('smd_access_key');
 }
 
 /**
@@ -272,15 +277,29 @@ function smd_akey_welcome($evt, $stp)
  */
 function smd_akey($msg = '')
 {
-    global $smd_akey_event, $smd_akey_list_pageby, $smd_akey_styles, $logging, $smd_akey_prefs;
+    global $smd_akey_event, $smd_akey_list_pageby, $logging, $smd_akey_prefs, $event;
 
     pagetop(gTxt('smd_akey_tab_name'), $msg);
 
     if (smd_akey_table_exist(1)) {
         extract(gpsa(array('page', 'sort', 'dir', 'crit', 'search_method')));
-        if ($sort === '') $sort = get_pref('smd_akey_sort_column', 'time');
-        if ($dir === '') $dir = get_pref('smd_akey_sort_dir', 'desc');
-        $dir = ($dir == 'asc') ? 'asc' : 'desc';
+
+        if ($sort === '') {
+            $sort = get_pref('smd_akey_sort_column', 'time');
+        } else {
+            if (!in_array($sort, array('page', 'triggah', 'time', 'expires', 'maximum', 'accesses', 'ip'))) {
+                $sort = 'time';
+            }
+
+            set_pref('smd_akey_sort_column', $sort, 'smd_akey', PREF_HIDDEN, '', 0, PREF_PRIVATE);
+        }
+
+        if ($dir === '') {
+            $dir = get_pref('smd_akey_sort_dir', 'desc');
+        } else {
+            $dir = ($dir == 'asc') ? "asc" : "desc";
+            set_pref('smd_akey_sort_dir', $dir, 'smd_akey', PREF_HIDDEN, '', 0, PREF_PRIVATE);
+        }
 
         switch ($sort) {
             case 'page':
@@ -309,160 +328,222 @@ function smd_akey($msg = '')
             break;
         }
 
-        set_pref('smd_akey_sort_column', $sort, 'smd_akey', PREF_HIDDEN, '', 0, PREF_PRIVATE);
-        set_pref('smd_akey_sort_dir', $dir, 'smd_akey', PREF_HIDDEN, '', 0, PREF_PRIVATE);
-
         $switch_dir = ($dir == 'desc') ? 'asc' : 'desc';
-
-        $criteria = 1;
-
-        if ($search_method and $crit) {
-            $crit_escaped = doSlash(str_replace(array('\\','%','_','\''), array('\\\\','\\%','\\_', '\\\''), $crit));
-            $critsql = array(
-                'page'     => "page like '%$crit_escaped%'",
-                'triggah'  => "triggah like '%$crit_escaped%'",
-                'maximum'  => "maximum = '$crit_escaped'",
-                'accesses' => "accesses = '$crit_escaped'",
-                'ip'       => "ip like '%$crit_escaped%'",
-            );
-
-            if (array_key_exists($search_method, $critsql)) {
-                $criteria = $critsql[$search_method];
-                $limit = 500;
-            } else {
-                $search_method = '';
-                $crit = '';
-            }
-        } else {
-            $search_method = '';
-            $crit = '';
-        }
-
-        $total = safe_count(SMD_AKEYS, "$criteria");
-
-        echo '<div id="'.$smd_akey_event.'_control" class="txp-control-panel">';
-
-        if ($total < 1) {
-            if ($criteria != 1) {
-                echo n.smd_akey_search_form($crit, $search_method).
-                    n.graf(gTxt('no_results_found'), ' class="indicator"').'</div>';
-                    return;
-            }
-        }
-
-        $limit = max($smd_akey_list_pageby, 15);
-
-        list($page, $offset, $numPages) = pager($total, $limit, $page);
-
-        echo n.smd_akey_search_form($crit, $search_method).'</div>';
-
-        // Retrieve the secret keyring table entries.
-        $secring = safe_rows('*', SMD_AKEYS, "$criteria order by $sort_sql limit $offset, $limit");
-
-        // Set up the buttons and column info.
-        $newbtn = '<a class="navlink" href="#" onclick="return smd_akey_togglenew();">'.gTxt('smd_akey_btn_new').'</a>';
-        $prefbtn = '<a class="navlink" href="?event='.$smd_akey_event.a.'step=smd_akey_prefs">'.gTxt('smd_akey_btn_pref').'</a>';
         $showip = get_pref('smd_akey_log_ip', $smd_akey_prefs['smd_akey_log_ip']['default'], 1);
 
-        echo <<<EOC
-<script type="text/javascript">
-function smd_akey_togglenew()
-{
-    box = jQuery("#smd_akey_create");
-    if (box.css("display") == "none") {
-        box.show();
-    } else {
-        box.hide();
-    }
-    jQuery("input.smd_focus").focus();
-    return false;
-}
-jQuery(function() {
-    jQuery("#smd_akey_add").click(function () {
-        jQuery("#smd_akey_step").val('smd_akey_create');
-        jQuery("#smd_akey_form").removeAttr('onsubmit').submit();
-    });
-});
-</script>
-EOC;
-        // Inject styles.
-        echo '<style type="text/css">' . $smd_akey_styles['list'] . '</style>';
+        $searchCols = array(
+            'page' => array(
+                'column' => SMD_AKEYS.'.page',
+                'label'  => gTxt('page'),
+            ),
+            'triggah' => array(
+                'column' => SMD_AKEYS.'.triggah',
+                'label'  => gTxt('smd_akey_trigger'),
+            ),
+            'time' => array(
+                'column' => SMD_AKEYS.'.time',
+                'label'  => gTxt('smd_akey_time'),
+                'options' => array('case_sensitive' => true),
+            ),
+            'maximum' => array(
+                'column' => SMD_AKEYS.'.maximum',
+                'label'  => gTxt('smd_akey_max'),
+                'type'   => 'integer',
+            ),
+            'accesses' => array(
+                'column' => SMD_AKEYS.'.accesses',
+                'label'  => gTxt('smd_akey_accesses'),
+                'type'   => 'integer',
+            ),
+        );
 
-        // Access key list.
-        echo n.'<div id="'.$smd_akey_event.'_container" class="txp-container txp-list">';
-        echo '<form name="longform" id="smd_akey_form" action="index.php" method="post" onsubmit="return verify(\''.gTxt('are_you_sure').'\')">';
-        echo startTable('list');
-        echo n.'<thead>'
-            .n.tr(tda($newbtn . sp . $prefbtn, ' class="noline"'))
-            .n.tr(
-                n.column_head(gTxt('smd_akey_page'), 'page', $smd_akey_event, true, $switch_dir, $crit, $search_method, (('page' == $sort) ? "$dir " : '').'page').
-                n.column_head(gTxt('smd_akey_trigger'), 'triggah', $smd_akey_event, true, $switch_dir, $crit, $search_method, (('triggah' == $sort) ? "$dir " : '')).
-                n.column_head(gTxt('smd_akey_time'), 'time', $smd_akey_event, true, $switch_dir, $crit, $search_method, (('time' == $sort) ? "$dir " : '').'date time').
-                n.hCell(gTxt('expires'), 'expires', ' class="date time"').
-                n.column_head(gTxt('smd_akey_max'), 'maximum', $smd_akey_event, true, $switch_dir, $crit, $search_method, (('maximum' == $sort) ? "$dir " : '')).
-                n.column_head(gTxt('smd_akey_accesses'), 'accesses', $smd_akey_event, true, $switch_dir, $crit, $search_method, (('accesses' == $sort) ? "$dir " : '')).
-                (($showip) ? n.column_head('IP', 'ip', $smd_akey_event, true, $switch_dir, $crit, $search_method, (('ip' == $sort) ? "$dir " : '').'ip') : '').
-                n.hCell('', '', ' class="multi-edit"')
-            ).
-            n.'</thead>';
-
-        $multiOpts = array('smd_akey_delete' => gTxt('delete'));
-
-        echo '<tfoot>' . tr(tda(
-                selectInput('smd_akey_multi_edit', $multiOpts, '', true)
-                .n.eInput($smd_akey_event)
-                .n.fInput('submit', '', gTxt('go'), 'smallerbox')
-            ,' class="multi-edit" colspan="' . (($showip) ? 7 : 6) . '" style="text-align: right; border: none;"'));
-        echo '</tfoot>';
-        echo '<tbody>';
-
-        // New access key row.
-        echo '<tr id="smd_akey_create" class="smd_hidden">';
-        echo td(fInput('hidden', 'step', 'smd_akey_multi_edit', '', '', '', '', '', 'smd_akey_step').fInput('text', 'smd_akey_newpage', '', 'smd_focus', '', '', '60'))
-            .td(fInput('text', 'smd_akey_triggah', ''))
-            .td(fInput('text', 'smd_akey_time', safe_strftime('%Y-%m-%d %H:%M:%S'), '', '', '', '25'))
-            .td(fInput('text', 'smd_akey_expires', '', '', '', '', '25'))
-            .td(fInput('text', 'smd_akey_maximum', '', '', '', '', '5'))
-            .td('&nbsp;')
-            . (($showip) ? td('&nbsp;') : '')
-            .td(fInput('submit', 'smd_akey_add', gTxt('add'), 'smallerbox', '', '', '', '', 'smd_akey_add'));
-        echo '</tr>';
-
-        // Remaining access keys.
-        foreach ($secring as $secidx => $data) {
-            if ($showip) {
-                $ips = do_list($data['ip'], ' ');
-                $iplist = array();
-                foreach ($ips as $ip) {
-                    $iplist[] = ($logging == 'none') ? $ip : eLink('log', 'log_list', 'search_method', 'ip', $ip, 'crit', $ip);
-                }
-            }
-
-            $dkey = $data['page'].'|'.$data['t_hex'];
-            $timeparts = do_list($data['t_hex'], '-');
-            $expiry = (isset($timeparts[1])) ? hexdec($timeparts[1]) : '';
-
-            echo tr(
-                td('<a href="'.$data['page'].'">'.$data['page'].'</a>', '', 'page')
-                . td($data['triggah'])
-                . td(safe_strftime('%Y-%m-%d %H:%M:%S', $data['time']), 85, 'date time')
-                . td( (($expiry) ? safe_strftime('%Y-%m-%d %H:%M:%S', $expiry) : '-'), 85, 'date time')
-                . td($data['maximum'])
-                . td($data['accesses'])
-                . ( ($showip) ? td( trim(join(' ', $iplist)), 20, 'ip' ) : '' )
-                . td( fInput('checkbox', 'selected[]', $dkey, 'checkbox'), '', 'multi-edit')
+        if ($showip) {
+            $searchCols[]['ip'] = array(
+                'column' => SMD_AKEYS.'.ip',
+                'label'  => 'IP',
             );
         }
-        echo '</tbody>';
-        echo endTable();
-        echo '</form>';
 
-        echo '<div id="'.$smd_akey_event.'_navigation" class="txp-navigation">'.
-            n.nav_form($smd_akey_event, $page, $numPages, $sort, $dir, $crit, $search_method, $total, $limit).
+        $search = new Filter($event, $searchCols);
 
-            n.pageby_form($smd_akey_event, $smd_akey_list_pageby).
-            n.'</div>'.n.'</div>';
+        list($criteria, $crit, $search_method) = $search->getFilter();
 
+        $search_render_options = array('placeholder' => 'search_access_keys');
+        $total = safe_count(SMD_AKEYS, $criteria);
+
+        $searchBlock =
+            n.tag(
+                $search->renderForm('smd_akey', $search_render_options),
+                'div', array(
+                    'class' => 'txp-layout-4col-3span',
+                    'id'    => $event.'_control',
+                )
+            );
+
+        // Set up the buttons.
+        $newbtn = '<a class="navlink smd_akey_btn_new" href="#">'.gTxt('smd_akey_btn_new').'</a>';
+        $prefbtn = '<a class="navlink" href="?event='.$smd_akey_event.a.'step=smd_akey_prefs">'.gTxt('smd_akey_btn_pref').'</a>';
+
+        $createBlock =
+            n.tag(
+                $newbtn.$prefbtn,
+                'div', array('class' => 'txp-control-panel')
+            );
+
+        $contentBlock = '';
+
+        $paginator = new \Textpattern\Admin\Paginator($event, 'smd_akey');
+        $limit = $paginator->getLimit();
+        list($page, $offset, $numPages) = pager($total, $limit, $page);
+
+        if ($total < 1 && $criteria != 1) {
+            $contentBlock .= graf(
+                    span(null, array('class' => 'ui-icon ui-icon-info')).' '.
+                    gTxt('no_results_found'),
+                    array('class' => 'alert-block information')
+                );
+        } else {
+            // Retrieve the secret keyring table entries.
+            $secring = safe_rows('*', SMD_AKEYS, "$criteria order by $sort_sql limit $offset, $limit");
+
+            if ($secring) {
+                $contentBlock .= script_js(<<<EOC
+jQuery(function() {
+    jQuery('#smd_akey_container').on('click', '.smd_akey_btn_new', function(ev) {
+        ev.preventDefault();
+        var box = jQuery("#smd_akey_create");
+
+        if (box.css('display') == 'none') {
+            box.css('display','table-row');
+        } else {
+            box.hide();
+        }
+
+        jQuery("input.smd_focus").focus();
+    });
+
+    jQuery("#smd_akey_add").click(function(ev) {
+        ev.preventDefault();
+        step = '';
+        jQuery("[name=step]").val('smd_akey_create');
+        jQuery("#smd_akey_form").submit();
+    });
+});
+EOC
+                );
+
+                // Access key list.
+                $headers = array(
+                    'page'     => 'page',
+                    'triggah'  => 'smd_akey_trigger',
+                    'time'     => 'smd_akey_time',
+                    'expires'  => 'expires',
+                    'maximum'  => 'smd_akey_max',
+                    'accesses' => 'smd_akey_accesses',
+                );
+
+                if ($showip) {
+                    $headers['ip'] = 'IP';
+                }
+
+                $dates = array('time', 'expires');
+
+                $head_row = hCell(
+                    fInput('checkbox', 'select_all', 0, '', '', '', '', '', 'select_all'),
+                        '', 'class="txp-list-col-multi-edit" scope="col" title="'.gTxt('toggle_all_selected').'"'
+                );
+
+                foreach ($headers as $header => $column_head) {
+                    if ($header == 'expires') {
+                        $head_row .= hcell(gTxt($column_head), $header, ' class="date time" data-col="expires"');
+                    } else {
+                        $head_row .= column_head(array(
+                                'options' => array(
+                                    'class' => trim('txp-list-col-'.$header.($header == $sort ? " $dir" : '').(in_array($header, $dates) ? ' date' : ''))),
+                                'value'   => $column_head,
+                                'sort'    => $header,
+                                'event'   => 'smd_akey',
+                                'step'    => 'smd_akey',
+                                'is_link' => true,
+                                'dir'     => $switch_dir,
+                                'crit'    => $crit,
+                                'method'  => $search_method,
+                            ));
+                    }
+                }
+
+                $contentBlock .= n.tag_start('form', array(
+                        'class'  => 'multi_edit_form',
+                        'id'     => 'smd_akey_form',
+                        'name'   => 'longform',
+                        'method' => 'post',
+                        'action' => 'index.php',
+                    )).
+                    n.tag_start('div', array('class' => 'txp-listtables')).
+                    n.tag_start('table', array('class' => 'txp-list')).
+                    n.tag_start('thead').
+                    tr($head_row).
+                    n.tag_end('thead');
+
+                $contentBlock .= n.tag_start('tbody');
+
+                // New access key row.
+                $contentBlock .= '<tr id="smd_akey_create" class="ui-helper-hidden">';
+                $contentBlock .= td(fInput('submit', 'smd_akey_add', gTxt('add'), 'smallerbox', '', '', '', '', 'smd_akey_add'))
+                    .td(fInput('text', 'smd_akey_newpage', '', 'smd_focus', '', '', '60'))
+                    .td(fInput('text', 'smd_akey_triggah', ''))
+                    .td(fInput('text', 'smd_akey_time', safe_strftime('%Y-%m-%d %H:%M:%S'), '', '', '', '25'))
+                    .td(fInput('text', 'smd_akey_expires', '', '', '', '', '25'))
+                    .td(fInput('text', 'smd_akey_maximum', '', '', '', '', '5'))
+                    .td('&nbsp;')
+                    . (($showip) ? td('&nbsp;') : '');
+                $contentBlock .=  '</tr>';
+
+                // Remaining access keys.
+                foreach ($secring as $secidx => $data) {
+                    if ($showip) {
+                        $ips = do_list($data['ip'], ' ');
+                        $iplist = array();
+
+                        foreach ($ips as $ip) {
+                            $iplist[] = ($logging == 'none') ? $ip : eLink('log', 'log_list', 'search_method', 'ip', $ip, 'crit', $ip);
+                        }
+                    }
+
+                    $dkey = $data['page'].'|'.$data['t_hex'];
+                    $timeparts = do_list($data['t_hex'], '-');
+                    $expiry = (isset($timeparts[1])) ? hexdec($timeparts[1]) : '';
+
+                    $contentBlock .= tr(
+                        td(fInput('checkbox', 'selected[]', $dkey, 'checkbox'), '', 'txp-list-col-multi-edit')
+                        . td('<a href="'.$data['page'].'">'.$data['page'].'</a>', '', 'page')
+                        . td($data['triggah'])
+                        . td(safe_strftime('%Y-%m-%d %H:%M:%S', $data['time']), 85, 'date time')
+                        . td( (($expiry) ? safe_strftime('%Y-%m-%d %H:%M:%S', $expiry) : '-'), 85, 'date time')
+                        . td($data['maximum'])
+                        . td($data['accesses'])
+                        . ( ($showip) ? td( trim(join(' ', $iplist)), 20, 'ip' ) : '' )
+                    );
+                }
+
+                $multiOpts = array('smd_akey_delete' => gTxt('delete'));
+                $contentBlock .= n.tag_end('tbody').
+                    n.tag_end('table').
+                    n.tag_end('div'). // End of .txp-listtables.
+                    multi_edit($multiOpts, 'smd_akey', 'smd_akey_multi_edit', $page, $sort, $dir, $crit, $search_method).
+                    tInput().
+                    n.tag_end('form');
+            }
+        }
+
+        $pageBlock = $paginator->render().
+            nav_form('smd_akey', $page, $numPages, $sort, $dir, $crit, $search_method, $total, $limit);
+
+        $table = new \Textpattern\Admin\Table($event);
+
+        // No Ajax updates or it breaks the 'New key' button after an Ajax call.
+        $html_id = '';
+        echo $table->render(compact('total', 'criteria', 'html_id'), $searchBlock, $createBlock, $contentBlock, $pageBlock);
     } else {
         // Table not installed.
         $btnInstall = '<form method="post" action="?event='.$smd_akey_event.a.'step=smd_akey_table_install" style="display:inline">'.fInput('submit', 'submit', gTxt('smd_akey_tbl_install_lbl'), 'smallerbox').'</form>';
@@ -484,33 +565,6 @@ function smd_akey_change_pageby()
 {
     event_change_pageby('smd_akey');
     smd_akey();
-}
-
-/**
- * The search dropdown list.
- *
- * @param  string $crit   (req) Search criteria
- * @param  string $method (req) Search method (field used)
- * @return HTML Search form
- */
-function smd_akey_search_form($crit, $method)
-{
-    global $smd_akey_event, $smd_akey_prefs;
-
-    $doip = get_pref('smd_akey_log_ip', $smd_akey_prefs['smd_akey_log_ip']['default'], 1);
-
-    $methods =	array(
-        'page'     => gTxt('smd_akey_page'),
-        'triggah'  => gTxt('smd_akey_trigger'),
-        'maximum'  => gTxt('smd_akey_max'),
-        'accesses' => gTxt('smd_akey_accesses'),
-    );
-
-    if ($doip) {
-        $methods['ip'] = gTxt('IP');
-    }
-
-    return search_form($smd_akey_event, '', $crit, $methods, $method, 'page');
 }
 
 /**
@@ -545,7 +599,7 @@ function smd_akey_create()
 function smd_akey_multi_edit()
 {
     $selected = gps('selected');
-    $operation = gps('smd_akey_multi_edit');
+    $operation = gps('edit_method');
     $del = 0;
     $msg = '';
 
@@ -557,6 +611,7 @@ function smd_akey_multi_edit()
                     $ret = safe_delete(SMD_AKEYS, "page = '" . $parts[0] . "' AND t_hex = '" . $parts[1] . "'");
                     $del = ($ret) ? $del+1 : $del;
                 }
+
                 $msg = gTxt('smd_akey_deleted', array('{deleted}' => $del));
             }
         break;
