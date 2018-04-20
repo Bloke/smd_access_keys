@@ -378,7 +378,7 @@ function smd_akey($msg = '')
 
         // Set up the buttons.
         $newbtn = '<a class="navlink smd_akey_btn_new" href="#">'.gTxt('smd_akey_btn_new').'</a>';
-        $prefbtn = '<a class="navlink" href="?event='.$smd_akey_event.a.'step=smd_akey_prefs">'.gTxt('smd_akey_btn_pref').'</a>';
+        $prefbtn = '<a class="navlink" href="'.prefs_link().'">'.gTxt('smd_akey_btn_pref').'</a>';
 
         $createBlock =
             n.tag(
@@ -617,13 +617,23 @@ function smd_akey_multi_edit()
 }
 
 /**
- * Jump to the prefs.
+ * Fetch the admin-side prefs panel link.
+ */
+function prefs_link()
+{
+    return '?event=prefs#prefs_group_smd_akey';
+}
+
+/**
+ * Jump to the prefs panel.
  *
  * @return HTML Page sub-content.
  */
 function smd_akey_prefs()
 {
-    header('Location: ?event=prefs#prefs_group_smd_akey');
+    $link = prefs_link();
+
+    header('Location: ' . $link);
 }
 
 /**
