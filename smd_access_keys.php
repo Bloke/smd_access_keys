@@ -76,11 +76,9 @@ smd_akey_generated => Access key: {key}
 smd_akey_log_ip => Log IP addresses
 smd_akey_max => Maximum
 smd_akey_need_page => You need to enter a page URL
-smd_akey_prefs_saved => Preferences saved
 smd_akey_prefs_some_explain => This is either a new installation or a different version<br />of the plugin to one you had before.
 smd_akey_prefs_some_opts => Click "Install table" to add or update the table<br />leaving all existing data untouched.
 smd_akey_prefs_some_tbl => Not all table info available.
-smd_akey_pref_legend => Access key preferences
 smd_akey_salt_length => Salt length (characters)
 smd_akey_tab_name => Access keys
 smd_akey_tbl_installed => Table installed
@@ -111,11 +109,9 @@ smd_akey_generated => Chiave di accesso: {key}
 smd_akey_log_ip => Registro indirizzi IP
 smd_akey_max => Massimo
 smd_akey_need_page => Devi inserire un URL di pagina
-smd_akey_prefs_saved => Preferenze salvate
 smd_akey_prefs_some_explain => Questa è o una nuova installazione o una versione<br />del plugin diversa da quella che avevi prima.
 smd_akey_prefs_some_opts => Clicca “Installa tabella” per aggiungere o aggiornare la tabella<br />lasciando intatti tutti i dati esistenti.
 smd_akey_prefs_some_tbl => Info tabella non tutte disponibili.
-smd_akey_pref_legend => Preferenze chiavi di accesso
 smd_akey_salt_length => lunghezza salt (in caratteri)
 smd_akey_tab_name => Chiavi di accesso
 smd_akey_tbl_installed => Tabella installata
@@ -182,37 +178,6 @@ if (class_exists('\Textpattern\Tag\Registry')) {
         ->register('smd_access_key');
 }
 
-/**
- * Keys used on the prefs screen.
- *
- * Displayed this way to help ied_plugin_composer find them:
- *  gTxt('smd_akey')
- *  gTxt('smd_akey_file_download_expires')
- *  gTxt('smd_akey_salt_length')
- *  gTxt('smd_akey_log_ip')
- */
-global $smd_akey_prefs;
-$smd_akey_prefs = array(
-    'smd_akey_file_download_expires' => array(
-        'html'     => 'text_input',
-        'type'     => PREF_HIDDEN,
-        'position' => 10,
-        'default'  => '3600',
-    ),
-    'smd_akey_salt_length' => array(
-        'html'     => 'text_input',
-        'type'     => PREF_HIDDEN,
-        'position' => 20,
-        'default'  => '8',
-    ),
-    'smd_akey_log_ip' => array(
-        'html'     => 'yesnoradio',
-        'type'     => PREF_HIDDEN,
-        'position' => 30,
-        'default'  => '0',
-    ),
-);
-
 if (!defined('SMD_AKEYS')) {
     define("SMD_AKEYS", 'smd_akeys');
 }
@@ -273,7 +238,9 @@ function smd_akey_welcome($evt, $stp)
  */
 function smd_akey($msg = '')
 {
-    global $smd_akey_event, $logging, $smd_akey_prefs, $event;
+    global $smd_akey_event, $logging, $event;
+
+    $smd_akey_prefs = smd_akey_get_prefs();
 
     pagetop(gTxt('smd_akey_tab_name'), $msg);
 
@@ -637,6 +604,37 @@ function smd_akey_prefs()
 }
 
 /**
+ * Fetch the preference option definitions.
+ *
+ * @return  array
+ */
+function smd_akey_get_prefs()
+{
+    $smd_akey_prefs = array(
+        'smd_akey_file_download_expires' => array(
+            'html'     => 'text_input',
+            'type'     => PREF_PLUGIN,
+            'position' => 10,
+            'default'  => '3600',
+        ),
+        'smd_akey_salt_length' => array(
+            'html'     => 'text_input',
+            'type'     => PREF_PLUGIN,
+            'position' => 20,
+            'default'  => '8',
+        ),
+        'smd_akey_log_ip' => array(
+            'html'     => 'yesnoradio',
+            'type'     => PREF_PLUGIN,
+            'position' => 30,
+            'default'  => '0',
+        ),
+    );
+
+    return $smd_akey_prefs;
+}
+
+/**
  * Add the smd_akeys table if not already installed.
  *
  * @param bool $showpane (opt) Whether to operate silently or display the admin interface on completion
@@ -777,7 +775,9 @@ function smd_akey_table_exist($type = '')
   */
 function smd_access_protect_download($evt, $stp)
 {
-    global $smd_akey_prefs, $id, $file_error;
+    global $id, $file_error;
+
+    $smd_akey_prefs = smd_akey_get_prefs();
 
     if (smd_akey_table_exist(1) && !isset($file_error)) {
         $fileid = intval($id);
@@ -817,7 +817,9 @@ function smd_access_protect_download($evt, $stp)
  */
 function smd_access_key($atts, $thing = null)
 {
-    global $smd_akey_prefs, $smd_akey_info;
+    global $smd_akey_info;
+
+    $smd_akey_prefs = smd_akey_get_prefs();
 
     // In case this tag is called from the admin side - needs parse().
     include_once txpath.'/publish.php';
@@ -958,7 +960,9 @@ function smd_access_key($atts, $thing = null)
  */
 function smd_access_protect($atts, $thing = null)
 {
-    global $smd_access_error, $smd_access_errcode, $smd_akey_protected_info, $smd_akey_prefs, $permlink_mode, $plugins;
+    global $smd_access_error, $smd_access_errcode, $smd_akey_protected_info, $permlink_mode, $plugins;
+
+    $smd_akey_prefs = smd_akey_get_prefs();
 
     extract(lAtts(array(
         'trigger'      => 'smd_akey',
