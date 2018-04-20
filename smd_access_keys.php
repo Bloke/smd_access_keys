@@ -17,7 +17,7 @@ $plugin['name'] = 'smd_access_keys';
 // 1 = Plugin help is in raw HTML.  Not recommended.
 # $plugin['allow_html_help'] = 1;
 
-$plugin['version'] = '0.20';
+$plugin['version'] = '1.0.0';
 $plugin['author'] = 'Stef Dawson';
 $plugin['author_uri'] = 'http://stefdawson.com/';
 $plugin['description'] = 'Permit access to content for a certain time period/number of access attempts';
