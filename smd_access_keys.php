@@ -154,16 +154,14 @@ if (!defined('txpinterface'))
 use Textpattern\Search\Filter;
 
 if (txpinterface === 'admin') {
-    global $smd_akey_event, $dbversion;
+    global $smd_akey_event;
 
     $smd_akey_event = 'smd_akey';
 
-    if (version_compare($dbversion, '4.6-dev') >= 0) {
-        add_privs('prefs.smd_akey', '1,2,3');
-    }
-
     add_privs($smd_akey_event, '1');
+    add_privs('prefs.smd_akey', '1,2,3');
     add_privs('plugin_prefs.smd_access_keys', '1');
+
     register_tab('extensions', $smd_akey_event, gTxt('smd_akey_tab_name'));
     register_callback('smd_akey_dispatcher', $smd_akey_event);
     register_callback('smd_akey_welcome', 'plugin_lifecycle.smd_access_keys');
@@ -236,8 +234,6 @@ function smd_akey_dispatcher($evt, $stp)
             'smd_akey_table_install',
             'smd_akey_table_remove',
             'smd_akey_create',
-            'smd_akey_prefs',
-            'smd_akey_prefsave',
             'smd_akey_multi_edit',
             'smd_akey_change_pageby',
         ))) {
@@ -621,58 +617,13 @@ function smd_akey_multi_edit()
 }
 
 /**
- * Display the prefs.
+ * Jump to the prefs.
  *
  * @return HTML Page sub-content.
  */
 function smd_akey_prefs()
 {
-    global $smd_akey_event, $smd_akey_prefs;
-
-    pagetop(gTxt('smd_akey_pref_legend'));
-
-    $out = array();
-    $out[] = '<form name="smd_akey_prefs" id="smd_akey_prefs" action="index.php" method="post">';
-    $out[] = eInput($smd_akey_event).sInput('smd_akey_prefsave');
-    $out[] = startTable('list');
-    $out[] = tr(tdcs(strong(gTxt('smd_akey_pref_legend')), 2));
-    foreach ($smd_akey_prefs as $idx => $prefobj) {
-        $subout = array();
-        $subout[] = tda('<label for="'.$idx.'">'.gTxt($idx).'</label>', ' class="noline" style="text-align: right; vertical-align: middle;"');
-        $val = get_pref($idx, $prefobj['default']);
-        switch ($prefobj['html']) {
-            case 'text_input':
-                $subout[] = fInputCell($idx, $val, '', '', '', $idx);
-            break;
-            case 'yesnoradio':
-                $subout[] = tda(yesnoRadio($idx, $val),' class="noline"');
-            break;
-        }
-        $out[] = tr(join(n, $subout));
-    }
-
-    $out[] = tr(tda('&nbsp;', ' class="noline"') . tda(fInput('submit', '', gTxt('save'), 'publish'), ' class="noline"'));
-    $out[] = endTable();
-    $out[] = '</form>';
-
-    echo join(n, $out);
-}
-
-/**
- * Save the prefs.
- */
-function smd_akey_prefsave()
-{
-    global $smd_akey_event, $smd_akey_prefs;
-
-    foreach ($smd_akey_prefs as $idx => $prefobj) {
-        $val = ps($idx);
-        set_pref($idx, $val, $smd_akey_event, $prefobj['type'], $prefobj['html'], $prefobj['position']);
-    }
-
-    $msg = gTxt('smd_akey_prefs_saved');
-
-    smd_akey($msg);
+    header('Location: ?event=prefs#prefs_group_smd_akey');
 }
 
 /**
