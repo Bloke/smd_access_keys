@@ -277,7 +277,7 @@ function smd_akey_welcome($evt, $stp)
  */
 function smd_akey($msg = '')
 {
-    global $smd_akey_event, $smd_akey_list_pageby, $logging, $smd_akey_prefs, $event;
+    global $smd_akey_event, $logging, $smd_akey_prefs, $event;
 
     pagetop(gTxt('smd_akey_tab_name'), $msg);
 
