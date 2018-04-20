@@ -1137,7 +1137,7 @@ function smd_access_protect($atts, $thing = null)
                 // In case the URL contains non-ascii chars.
                 $page = rawurldecode($page);
 
-                trace_add('[smd_access_key page | timestamp | max | extras: ' . join('|', array($page, $t_hex, $max, $extras)) . ']');
+                trace_add('[smd_access_key page | timestamp | max | extras: ' . join('|', array($page, $t_hex, $max)+$extras) . ']');
 
                 if ($t_hex) {
                     // The timestamp is present. Next, get the secret key.
