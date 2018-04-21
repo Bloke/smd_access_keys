@@ -462,15 +462,15 @@ if (txpinterface === 'admin') {
                 }
             }
 
-            if ($thing === null) {
-                txp_die(gTxt($smd_access_error), $smd_access_errcode);
-            } else {
-                if ($smd_access_error || $smd_access_errcode) {
-                    trace_add('[smd_access_key error state: ' . $smd_access_errcode . '|' . $smd_access_error . ']');
-                }
+            if ($smd_access_error || $smd_access_errcode) {
+                trace_add('[smd_access_key error state: ' . $smd_access_errcode . '|' . $smd_access_error . ']');
 
+                if ($thing === null) {
+                    txp_die(gTxt($smd_access_error), $smd_access_errcode);
+                }
+            } else {
                 // If we reach this point it's because we're using a container.
-                return parse($thing, $ret);
+                return parse($thing, empty($ret));
             }
         } else {
             trigger_error(gTxt('smd_akey_tbl_not_installed'), E_USER_NOTICE);
@@ -836,7 +836,7 @@ EOC
             // New access key row.
             $contentBlock .= '<tr id="smd_akey_create" class="ui-helper-hidden">';
             $contentBlock .= td(fInput('submit', 'smd_akey_add', gTxt('add'), 'smallerbox', '', '', '', '', 'smd_akey_add'))
-                .td(fInput('text', 'smd_akey_newpage', '', 'smd_focus', '', '', '60'))
+                .td(fInput('text', 'smd_akey_newpage', '', 'smd_focus', '', '', '50'))
                 .td(fInput('text', 'smd_akey_triggah', ''))
                 .td(fInput('text', 'smd_akey_time', safe_strftime('%Y-%m-%d %H:%M:%S'), '', '', '', '25'))
                 .td(fInput('text', 'smd_akey_expires', '', '', '', '', '25'))
