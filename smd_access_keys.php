@@ -753,8 +753,7 @@ function smd_akey($msg = '')
             // Retrieve the secret keyring table entries.
             $secring = safe_rows('*', SMD_AKEYS, "$criteria order by $sort_sql limit $offset, $limit");
 
-            if ($secring) {
-                $contentBlock .= script_js(<<<EOC
+            $contentBlock .= script_js(<<<EOC
 jQuery(function() {
     jQuery('#smd_akey_container').on('click', '.smd_akey_btn_new', function(ev) {
         ev.preventDefault();
@@ -777,110 +776,109 @@ jQuery(function() {
     });
 });
 EOC
-                );
+            );
 
-                // Access key list.
-                $headers = array(
-                    'page'     => 'page',
-                    'triggah'  => 'smd_akey_trigger',
-                    'time'     => 'smd_akey_time',
-                    'expires'  => 'expires',
-                    'maximum'  => 'smd_akey_max',
-                    'accesses' => 'smd_akey_accesses',
-                );
+            // Access key list.
+            $headers = array(
+                'page'     => 'page',
+                'triggah'  => 'smd_akey_trigger',
+                'time'     => 'smd_akey_time',
+                'expires'  => 'expires',
+                'maximum'  => 'smd_akey_max',
+                'accesses' => 'smd_akey_accesses',
+            );
 
-                if ($showip) {
-                    $headers['ip'] = 'IP';
-                }
-
-                $dates = array('time', 'expires');
-
-                $head_row = hCell(
-                    fInput('checkbox', 'select_all', 0, '', '', '', '', '', 'select_all'),
-                        '', 'class="txp-list-col-multi-edit" scope="col" title="'.gTxt('toggle_all_selected').'"'
-                );
-
-                foreach ($headers as $header => $column_head) {
-                    if ($header == 'expires') {
-                        $head_row .= hcell(gTxt($column_head), $header, ' class="date time" data-col="expires"');
-                    } else {
-                        $head_row .= column_head(array(
-                                'options' => array(
-                                    'class' => trim('txp-list-col-'.$header.($header == $sort ? " $dir" : '').(in_array($header, $dates) ? ' date' : ''))),
-                                'value'   => $column_head,
-                                'sort'    => $header,
-                                'event'   => 'smd_akey',
-                                'step'    => 'smd_akey',
-                                'is_link' => true,
-                                'dir'     => $switch_dir,
-                                'crit'    => $crit,
-                                'method'  => $search_method,
-                            ));
-                    }
-                }
-
-                $contentBlock .= n.tag_start('form', array(
-                        'class'  => 'multi_edit_form',
-                        'id'     => 'smd_akey_form',
-                        'name'   => 'longform',
-                        'method' => 'post',
-                        'action' => 'index.php',
-                    )).
-                    n.tag_start('div', array('class' => 'txp-listtables')).
-                    n.tag_start('table', array('class' => 'txp-list')).
-                    n.tag_start('thead').
-                    tr($head_row).
-                    n.tag_end('thead');
-
-                $contentBlock .= n.tag_start('tbody');
-
-                // New access key row.
-                $contentBlock .= '<tr id="smd_akey_create" class="ui-helper-hidden">';
-                $contentBlock .= td(fInput('submit', 'smd_akey_add', gTxt('add'), 'smallerbox', '', '', '', '', 'smd_akey_add'))
-                    .td(fInput('text', 'smd_akey_newpage', '', 'smd_focus', '', '', '60'))
-                    .td(fInput('text', 'smd_akey_triggah', ''))
-                    .td(fInput('text', 'smd_akey_time', safe_strftime('%Y-%m-%d %H:%M:%S'), '', '', '', '25'))
-                    .td(fInput('text', 'smd_akey_expires', '', '', '', '', '25'))
-                    .td(fInput('text', 'smd_akey_maximum', '', '', '', '', '5'))
-                    .td('&nbsp;')
-                    . (($showip) ? td('&nbsp;') : '');
-                $contentBlock .=  '</tr>';
-
-                // Remaining access keys.
-                foreach ($secring as $secidx => $data) {
-                    if ($showip) {
-                        $ips = do_list($data['ip'], ' ');
-                        $iplist = array();
-
-                        foreach ($ips as $ip) {
-                            $iplist[] = ($logging == 'none') ? $ip : eLink('log', 'log_list', 'search_method', 'ip', $ip, 'crit', $ip);
-                        }
-                    }
-
-                    $dkey = $data['page'].'|'.$data['t_hex'];
-                    $timeparts = do_list($data['t_hex'], '-');
-                    $expiry = (isset($timeparts[1])) ? hexdec($timeparts[1]) : '';
-
-                    $contentBlock .= tr(
-                        td(fInput('checkbox', 'selected[]', $dkey, 'checkbox'), '', 'txp-list-col-multi-edit')
-                        . td('<a href="'.$data['page'].'">'.$data['page'].'</a>', '', 'page')
-                        . td($data['triggah'])
-                        . td(safe_strftime('%Y-%m-%d %H:%M:%S', $data['time']), 85, 'date time')
-                        . td( (($expiry) ? safe_strftime('%Y-%m-%d %H:%M:%S', $expiry) : '-'), 85, 'date time')
-                        . td($data['maximum'])
-                        . td($data['accesses'])
-                        . ( ($showip) ? td( trim(join(' ', $iplist)), 20, 'ip' ) : '' )
-                    );
-                }
-
-                $multiOpts = array('smd_akey_delete' => gTxt('delete'));
-                $contentBlock .= n.tag_end('tbody').
-                    n.tag_end('table').
-                    n.tag_end('div'). // End of .txp-listtables.
-                    multi_edit($multiOpts, 'smd_akey', 'smd_akey_multi_edit', $page, $sort, $dir, $crit, $search_method).
-                    tInput().
-                    n.tag_end('form');
+            if ($showip) {
+                $headers['ip'] = 'IP';
             }
+
+            $dates = array('time', 'expires');
+
+            $head_row = hCell(
+                fInput('checkbox', 'select_all', 0, '', '', '', '', '', 'select_all'),
+                    '', 'class="txp-list-col-multi-edit" scope="col" title="'.gTxt('toggle_all_selected').'"'
+            );
+
+            foreach ($headers as $header => $column_head) {
+                if ($header == 'expires') {
+                    $head_row .= hcell(gTxt($column_head), $header, ' class="date time" data-col="expires"');
+                } else {
+                    $head_row .= column_head(array(
+                            'options' => array(
+                                'class' => trim('txp-list-col-'.$header.($header == $sort ? " $dir" : '').(in_array($header, $dates) ? ' date' : ''))),
+                            'value'   => $column_head,
+                            'sort'    => $header,
+                            'event'   => 'smd_akey',
+                            'step'    => 'smd_akey',
+                            'is_link' => true,
+                            'dir'     => $switch_dir,
+                            'crit'    => $crit,
+                            'method'  => $search_method,
+                        ));
+                }
+            }
+
+            $contentBlock .= n.tag_start('form', array(
+                    'class'  => 'multi_edit_form',
+                    'id'     => 'smd_akey_form',
+                    'name'   => 'longform',
+                    'method' => 'post',
+                    'action' => 'index.php',
+                )).
+                n.tag_start('div', array('class' => 'txp-listtables')).
+                n.tag_start('table', array('class' => 'txp-list')).
+                n.tag_start('thead').
+                tr($head_row).
+                n.tag_end('thead');
+
+            $contentBlock .= n.tag_start('tbody');
+
+            // New access key row.
+            $contentBlock .= '<tr id="smd_akey_create" class="ui-helper-hidden">';
+            $contentBlock .= td(fInput('submit', 'smd_akey_add', gTxt('add'), 'smallerbox', '', '', '', '', 'smd_akey_add'))
+                .td(fInput('text', 'smd_akey_newpage', '', 'smd_focus', '', '', '60'))
+                .td(fInput('text', 'smd_akey_triggah', ''))
+                .td(fInput('text', 'smd_akey_time', safe_strftime('%Y-%m-%d %H:%M:%S'), '', '', '', '25'))
+                .td(fInput('text', 'smd_akey_expires', '', '', '', '', '25'))
+                .td(fInput('text', 'smd_akey_maximum', '', '', '', '', '5'))
+                .td('&nbsp;')
+                . (($showip) ? td('&nbsp;') : '');
+            $contentBlock .=  '</tr>';
+
+            // Remaining access keys.
+            foreach ($secring as $secidx => $data) {
+                if ($showip) {
+                    $ips = do_list($data['ip'], ' ');
+                    $iplist = array();
+
+                    foreach ($ips as $ip) {
+                        $iplist[] = ($logging == 'none') ? $ip : eLink('log', 'log_list', 'search_method', 'ip', $ip, 'crit', $ip);
+                    }
+                }
+
+                $dkey = $data['page'].'|'.$data['t_hex'];
+                $timeparts = do_list($data['t_hex'], '-');
+                $expiry = (isset($timeparts[1])) ? hexdec($timeparts[1]) : '';
+
+                $contentBlock .= tr(
+                    td(fInput('checkbox', 'selected[]', $dkey, 'checkbox'), '', 'txp-list-col-multi-edit')
+                    . td('<a href="'.$data['page'].'">'.$data['page'].'</a>', '', 'page')
+                    . td($data['triggah'])
+                    . td(safe_strftime('%Y-%m-%d %H:%M:%S', $data['time']), 85, 'date time')
+                    . td( (($expiry) ? safe_strftime('%Y-%m-%d %H:%M:%S', $expiry) : '-'), 85, 'date time')
+                    . td($data['maximum'])
+                    . td($data['accesses'])
+                    . ( ($showip) ? td( trim(join(' ', $iplist)), 20, 'ip' ) : '' )
+                );
+            }
+
+            $multiOpts = array('smd_akey_delete' => gTxt('delete'));
+            $contentBlock .= n.tag_end('tbody').
+                n.tag_end('table').
+                n.tag_end('div'). // End of .txp-listtables.
+                multi_edit($multiOpts, 'smd_akey', 'smd_akey_multi_edit', $page, $sort, $dir, $crit, $search_method).
+                tInput().
+                n.tag_end('form');
         }
 
         $pageBlock = $paginator->render().
