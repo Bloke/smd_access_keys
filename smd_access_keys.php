@@ -77,8 +77,8 @@ smd_akey_max => Maximum
 smd_akey_need_page => You need to enter a page URL
 smd_akey_page => Page
 smd_akey_prefs_saved => Preferences saved
-smd_akey_prefs_some_explain => This is either a new installation or a different version<br />of the plugin to one you had before.
-smd_akey_prefs_some_opts => Click "Install table" to add or update the table<br />leaving all existing data untouched.
+smd_akey_prefs_some_explain => This is either a new installation or a different version of the plugin to one you had before.
+smd_akey_prefs_some_opts => Click "Install table" to add or update the table leaving all existing data untouched.
 smd_akey_prefs_some_tbl => Not all table info available.
 smd_akey_pref_legend => Access key preferences
 smd_akey_salt_length => Salt length (characters)
@@ -112,8 +112,8 @@ smd_akey_max => Massimo
 smd_akey_need_page => Devi inserire un URL di pagina
 smd_akey_page => Pagina
 smd_akey_prefs_saved => Preferenze salvate
-smd_akey_prefs_some_explain => Questa è o una nuova installazione o una versione<br />del plugin diversa da quella che avevi prima.
-smd_akey_prefs_some_opts => Clicca “Installa tabella” per aggiungere o aggiornare la tabella<br />lasciando intatti tutti i dati esistenti.
+smd_akey_prefs_some_explain => Questa è o una nuova installazione o una versione del plugin diversa da quella che avevi prima.
+smd_akey_prefs_some_opts => Clicca “Installa tabella” per aggiungere o aggiornare la tabella lasciando intatti tutti i dati esistenti.
 smd_akey_prefs_some_tbl => Info tabella non tutte disponibili.
 smd_akey_pref_legend => Preferenze chiavi di accesso
 smd_akey_salt_length => lunghezza salt (in caratteri)
@@ -254,7 +254,7 @@ function smd_akey_welcome($evt, $stp)
     switch ($stp) {
         case 'installed':
             smd_akey_table_install(0);
-            $msg = 'Restrict your Txp world :-)';
+            $msg = 'Restrict your Textpattern world :-)';
             break;
         case 'deleted':
             smd_akey_table_remove(0);
@@ -465,15 +465,26 @@ EOC;
 
     } else {
         // Table not installed.
-        $btnInstall = '<form method="post" action="?event='.$smd_akey_event.a.'step=smd_akey_table_install" style="display:inline">'.fInput('submit', 'submit', gTxt('smd_akey_tbl_install_lbl'), 'smallerbox').'</form>';
-        $btnStyle = ' style="border:0;height:25px"';
-        echo startTable('list');
-        echo tr(tda(strong(gTxt('smd_akey_prefs_some_tbl')).br.br
-                .gTxt('smd_akey_prefs_some_explain').br.br
-                .gTxt('smd_akey_prefs_some_opts'), ' colspan="2"')
-        );
-        echo tr(tda($btnInstall, $btnStyle));
-        echo endTable();
+        $out = n.'<div class="txp-layout">'.
+            n.tag(
+                hed(gTxt('tab_'.$event), 1, array('class' => 'txp-heading')),
+                'div', array('class' => 'txp-layout-4col-alt')
+            );
+
+        $out .= tag_start('div', array(
+                'class' => 'txp-layout-1col',
+                'id'    => $event.'_container',
+            ));
+
+        $btnInstall = '<form method="post" action="?event='.$smd_akey_event.a.'step=smd_akey_table_install">'.fInput('submit', 'submit', gTxt('smd_akey_tbl_install_lbl'), 'smallerbox').'</form>';
+        $out .= graf(strong(gTxt('smd_akey_prefs_some_tbl')))
+                .graf(gTxt('smd_akey_prefs_some_explain'))
+                .graf(gTxt('smd_akey_prefs_some_opts'));
+        $out .= $btnInstall;
+        $out .= '</div>'
+            .'</div>';
+
+        echo $out;
     }
 }
 
