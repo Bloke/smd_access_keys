@@ -363,12 +363,8 @@ if (txpinterface === 'admin') {
 
                                 // Has the resource become available yet?
                                 if ($now < $t_dec) {
-                                    if ($thing == null) {
-                                        txp_die(gTxt('smd_akey_err_unavailable'), 410);
-                                    } else {
-                                        $smd_access_error = 'smd_akey_err_unavailable';
-                                        $smd_access_errcode = 410;
-                                    }
+                                    $smd_access_error = 'smd_akey_err_unavailable';
+                                    $smd_access_errcode = 410;
                                 } else {
                                     // Has token's expiry been reached, or is 'now' greater than 'then' (when token generated) + expiry period?
                                     if ($t_exp) {
@@ -380,12 +376,8 @@ if (txpinterface === 'admin') {
                                     }
 
                                     if ($tester && ($now > $compare_to)) {
-                                        if ($thing == null) {
-                                            txp_die(gTxt('smd_akey_err_expired'), 410);
-                                        } else {
-                                            $smd_access_error = 'smd_akey_err_expired';
-                                            $smd_access_errcode = 410;
-                                        }
+                                        $smd_access_error = 'smd_akey_err_expired';
+                                        $smd_access_errcode = 410;
                                     } else {
                                         // Check if the download limit has been exceeded.
                                         $vu_qty = $secring['accesses'];
@@ -393,12 +385,8 @@ if (txpinterface === 'admin') {
                                             if ($vu_qty < $max) {
                                                 $ret = true;
                                             } else {
-                                                if ($thing == null) {
-                                                    txp_die(gTxt('smd_akey_err_limit'), 410);
-                                                } else {
-                                                    $smd_access_error = 'smd_akey_err_limit';
-                                                    $smd_access_errcode = 410;
-                                                }
+                                                $smd_access_error = 'smd_akey_err_limit';
+                                                $smd_access_errcode = 410;
                                             }
                                         } else {
                                             $ret = true;
@@ -437,6 +425,7 @@ if (txpinterface === 'admin') {
                                         }
                                         if ($extras) {
                                             $smd_akey_protected_info['extra'] = urldecode(join('/', $extras));
+
                                             foreach ($extras as $idx => $extra) {
                                                 $smd_akey_protected_info['extra_'.intval($idx+1)] = urldecode($extra);
                                             }
@@ -445,60 +434,44 @@ if (txpinterface === 'admin') {
                                 }
 
                             } else {
-                                if ($thing == null) {
-                                    txp_die(gTxt('smd_akey_err_invalid_token'), 403);
-                                } else {
-                                    $smd_access_error = 'smd_akey_err_invalid_token';
-                                    $smd_access_errcode = 403;
-                                }
+                                $smd_access_error = 'smd_akey_err_invalid_token';
+                                $smd_access_errcode = 403;
                             }
 
                         } else {
-                            if ($thing == null) {
-                                txp_die(gTxt('smd_akey_err_unauthorized'), 401);
-                            } else {
-                                $smd_access_error = 'smd_akey_err_unauthorized';
-                                $smd_access_errcode = 401;
-                            }
+                            $smd_access_error = 'smd_akey_err_unauthorized';
+                            $smd_access_errcode = 401;
                         }
 
                     } else {
-                        if ($thing == null) {
-                            txp_die(gTxt('smd_akey_err_missing_timestamp'), 403);
-                        } else {
-                            $smd_access_error = 'smd_akey_err_missing_timestamp';
-                            $smd_access_errcode = 403;
-                        }
+                        $smd_access_error = 'smd_akey_err_missing_timestamp';
+                        $smd_access_errcode = 403;
                     }
 
                 } else {
-                    if ($thing == null) {
-                        txp_die(gTxt('smd_akey_err_bad_token'), 403);
-                    } else {
-                        $smd_access_error = 'smd_akey_err_bad_token';
-                        $smd_access_errcode = 403;
-                    }
+                    $smd_access_error = 'smd_akey_err_bad_token';
+                    $smd_access_errcode = 403;
                 }
             } else {
                 // If we always want to forbid access to this page regardless if the trigger exists.
                 if ($force) {
-                    if ($thing == null) {
-                        txp_die(gTxt('smd_akey_err_forbidden'), 401);
-                    } else {
-                        $smd_access_error = 'smd_akey_err_forbidden';
-                        $smd_access_errcode = 401;
-                    }
+                    $smd_access_error = 'smd_akey_err_forbidden';
+                    $smd_access_errcode = 401;
                 } else {
                     $ret = true;
                 }
             }
 
-            if ($smd_access_error || $smd_access_errcode) {
-                trace_add('[smd_access_key error state: ' . $smd_access_errcode . '|' . $smd_access_error . ']');
-            }
+            if ($thing === null) {
+                txp_die(gTxt($smd_access_error), $smd_access_errcode);
+            } else {
+                if ($smd_access_error || $smd_access_errcode) {
+                    trace_add('[smd_access_key error state: ' . $smd_access_errcode . '|' . $smd_access_error . ']');
+                }
 
-            // If we reach this point it's because we're using a container.
-            return parse(EvalElse($thing, $ret));
+                // If we reach this point it's because we're using a container.
+                return parse($thing, $ret);
+            }
         } else {
             trigger_error(gTxt('smd_akey_tbl_not_installed'), E_USER_NOTICE);
         }
