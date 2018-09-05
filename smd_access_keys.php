@@ -468,10 +468,10 @@ if (txpinterface === 'admin') {
                 if ($thing === null) {
                     txp_die(gTxt($smd_access_error), $smd_access_errcode);
                 }
-            } else {
-                // If we reach this point it's because we're using a container.
-                return parse($thing, empty($ret));
             }
+
+            // If we reach this point it's because we're using a container.
+            return parse($thing, $ret);
         } else {
             trigger_error(gTxt('smd_akey_tbl_not_installed'), E_USER_NOTICE);
         }
@@ -551,7 +551,7 @@ if (txpinterface === 'admin') {
 
         $out = in_array(false, $err) ? false : true; // AND logic
 
-        return parse(EvalElse($thing, $out));
+        return parse($thing, $out);
     }
 }
 
