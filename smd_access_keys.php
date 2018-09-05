@@ -57,7 +57,7 @@ $plugin['flags'] = '3';
 $plugin['textpack'] = <<<EOT
 #@language en, en-gb, en-us
 #@admin-side
-tab_smd_akey => Access keys
+smd_akey => Access keys
 #@smd_akey
 smd_akey_accesses => Access attempts
 smd_akey_btn_new => New key
@@ -80,7 +80,6 @@ smd_akey_prefs_some_explain => This is either a new installation or a different 
 smd_akey_prefs_some_opts => Click "Install table" to add or update the table leaving all existing data untouched.
 smd_akey_prefs_some_tbl => Not all table info available.
 smd_akey_salt_length => Salt length (characters)
-smd_akey_tab_name => Access keys
 smd_akey_tbl_installed => Table installed
 smd_akey_tbl_install_lbl => Install table
 smd_akey_tbl_not_installed => Table not installed
@@ -90,7 +89,7 @@ smd_akey_time => Issued
 smd_akey_trigger => Trigger
 #@language it
 #@admin-side
-tab_smd_akey => Chiavi di accesso
+smd_akey => Chiavi di accesso
 #@smd_akey
 smd_akey_accesses => Tentativi di accesso
 smd_akey_btn_new => Nuova chiave
@@ -113,7 +112,6 @@ smd_akey_prefs_some_explain => Questa è o una nuova installazione o una version
 smd_akey_prefs_some_opts => Clicca “Installa tabella” per aggiungere o aggiornare la tabella lasciando intatti tutti i dati esistenti.
 smd_akey_prefs_some_tbl => Info tabella non tutte disponibili.
 smd_akey_salt_length => lunghezza salt (in caratteri)
-smd_akey_tab_name => Chiavi di accesso
 smd_akey_tbl_installed => Tabella installata
 smd_akey_tbl_install_lbl => Installazione tabella
 smd_akey_tbl_not_installed => Tabella non installata
@@ -158,7 +156,7 @@ if (txpinterface === 'admin') {
     add_privs('prefs.smd_akey', '1,2,3');
     add_privs('plugin_prefs.smd_access_keys', '1');
 
-    register_tab('extensions', $smd_akey_event, gTxt('smd_akey_tab_name'));
+    register_tab('extensions', $smd_akey_event, gTxt('smd_akey'));
     register_callback('smd_akey_dispatcher', $smd_akey_event);
     register_callback('smd_akey_welcome', 'plugin_lifecycle.smd_access_keys');
     register_callback('smd_akey_prefs', 'plugin_prefs.smd_access_keys');
@@ -626,7 +624,7 @@ function smd_akey($msg = '')
 
     $smd_akey_prefs = smd_akey_get_prefs();
 
-    pagetop(gTxt('smd_akey_tab_name'), $msg);
+    pagetop(gTxt('smd_akey'), $msg);
 
     if (smd_akey_table_exist(1)) {
         extract(gpsa(array('page', 'sort', 'dir', 'crit', 'search_method')));
@@ -888,12 +886,13 @@ EOC
 
         // No Ajax updates or it breaks the 'New key' button after an Ajax call.
         $html_id = '';
-        echo $table->render(compact('total', 'criteria', 'html_id'), $searchBlock, $createBlock, $contentBlock, $pageBlock);
+        $heading = $event;
+        echo $table->render(compact('heading', 'total', 'criteria', 'html_id'), $searchBlock, $createBlock, $contentBlock, $pageBlock);
     } else {
         // Table not installed.
         $out = n.'<div class="txp-layout">'.
             n.tag(
-                hed(gTxt('tab_'.$event), 1, array('class' => 'txp-heading')),
+                hed(gTxt('smd_akey'), 1, array('class' => 'txp-heading')),
                 'div', array('class' => 'txp-layout-4col-alt')
             );
 
