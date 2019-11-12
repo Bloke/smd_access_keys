@@ -1,0 +1,11 @@
+{
+  "name": "smd_access_keys",
+  "description": "Textpattern CMS plugin to permit access to content for a certain time period/number of access attempts",
+  "version": "1.0.0",
+  "type": 1,
+  "author": "Stef Dawson",
+  "author_uri": "https://stefdawson.com/",
+  "order": 5,
+  "flags": 3,
+  "help": {"file" : ["./README.textile"]}
+}

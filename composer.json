@@ -1,0 +1,16 @@
+{
+  "name": "bloke/smd_access_keys",
+  "description": "Textpattern CMS plugin to permit access to content for a certain time period/number of access attempts",
+  "keywords": ["textpattern", "plugin", "security", "access", "attempt", "count", "protect", "content"],
+  "homepage": "https://github.com/bloke/smd_access_keys",
+  "license": "GPL-2.0",
+  "type": "textpattern-plugin",
+  "support": {
+    "issues": "https://github.com/bloke/smd_access_keys/issues",
+    "source": "https://github.com/bloke/smd_access_keys"
+  },
+  "require": {
+    "textpattern/lock": ">=4.7.0",
+    "textpattern/installer": "*"
+  }
+}

@@ -4,7 +4,7 @@ Permit access to downloads, pages or parts of pages for a certain configurable t
 
 h2. Installation / uninstallation
 
-p(important). Requires TXP 4.4.0+
+p(important). Requires TXP 4.7.0+
 
 Download the plugin from either "textpattern.org":http://textpattern.org/plugins/1222/smd_access_keys, or the "software page":http://stefdawson.com/sw, paste the code into the TXP _Admin->Plugins_ pane, install and enable the plugin. The table will be installed automatically unless you use the plugin from the cache directory; in which case, visit the _Extensions->Access keys_ tab and click the _Install table_ button before trying to use the plugin.
 
