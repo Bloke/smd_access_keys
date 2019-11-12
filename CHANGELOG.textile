@@ -1,5 +1,15 @@
 h1. Changelog
 
+h2. 1.0.0 
+
+* For 4.7.x
+* Don't use deprecated mysql_* functions.
+* Add Italian Textpack (thanks, giampablo).
+* Register public tags.
+* Use native prefs.
+* Fix bug so exit only occurs on error.
+* Remove code cruft.
+
 h2. 0.20 - 2015-03-17
 
 * Added @strength@ attribute (thanks Dragondz)
