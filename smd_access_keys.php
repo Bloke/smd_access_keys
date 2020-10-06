@@ -17,9 +17,9 @@ $plugin['name'] = 'smd_access_keys';
 // 1 = Plugin help is in raw HTML.  Not recommended.
 # $plugin['allow_html_help'] = 1;
 
-$plugin['version'] = '1.0.0';
+$plugin['version'] = '1.1.0';
 $plugin['author'] = 'Stef Dawson';
-$plugin['author_uri'] = 'http://stefdawson.com/';
+$plugin['author_uri'] = 'https://stefdawson.com/';
 $plugin['description'] = 'Permit access to content for a certain time period/number of access attempts';
 
 // Plugin load order:
@@ -86,6 +86,7 @@ smd_akey_tbl_not_installed => Table not installed
 smd_akey_tbl_not_removed => Table not removed
 smd_akey_tbl_removed => Table removed
 smd_akey_time => Issued
+smd_akey_token_length => Access key length (characters)
 smd_akey_trigger => Trigger
 #@language it
 #@admin-side
@@ -111,13 +112,14 @@ smd_akey_need_page => Devi inserire un URL di pagina
 smd_akey_prefs_some_explain => Questa è o una nuova installazione o una versione del plugin diversa da quella che avevi prima.
 smd_akey_prefs_some_opts => Clicca “Installa tabella” per aggiungere o aggiornare la tabella lasciando intatti tutti i dati esistenti.
 smd_akey_prefs_some_tbl => Info tabella non tutte disponibili.
-smd_akey_salt_length => lunghezza salt (in caratteri)
+smd_akey_salt_length => Lunghezza salt (in caratteri)
 smd_akey_tbl_installed => Tabella installata
 smd_akey_tbl_install_lbl => Installazione tabella
 smd_akey_tbl_not_installed => Tabella non installata
 smd_akey_tbl_not_removed => Tabella non rimossa
 smd_akey_tbl_removed => Tabella rimossa
 smd_akey_time => Emessa
+smd_akey_token_length => Lunghezza chiave di accesso (in caratteri)
 smd_akey_trigger => Trigger
 EOT;
 
@@ -134,7 +136,7 @@ if (!defined('txpinterface'))
  *  -> Optional IP logging
  *
  * @author Stef Dawson
- * @link   http://stefdawson.com/
+ * @link   https://stefdawson.com/
  * @todo Add shortcut to send a newly-generated admin-side key to a user? (dropdown of users + e-mail template in prefs?)
  * @todo Add auto-deletion of expired keys pref:
  *       -> File download keys can be deleted on any key access (expiry window is known via prefs).
@@ -158,8 +160,9 @@ if (txpinterface === 'admin') {
 
     register_tab('extensions', $smd_akey_event, gTxt('smd_akey'));
     register_callback('smd_akey_dispatcher', $smd_akey_event);
+    register_callback('smd_akey_prefs', 'prefs', '', 1);
     register_callback('smd_akey_welcome', 'plugin_lifecycle.smd_access_keys');
-    register_callback('smd_akey_prefs', 'plugin_prefs.smd_access_keys');
+    register_callback('smd_akey_options', 'plugin_prefs.smd_access_keys');
 } elseif (txpinterface === 'public') {
     if (class_exists('\Textpattern\Tag\Registry')) {
         Txp::get('\Textpattern\Tag\Registry')
@@ -233,6 +236,7 @@ if (txpinterface === 'admin') {
                     break;
                     case 'begins':
                         $count = 0;
+
                         foreach ($parts as $part) {
                             if (strpos($part, $trig) === 0) {
                                 $trigoff = $count;
@@ -244,6 +248,7 @@ if (txpinterface === 'admin') {
                     break;
                     case 'ends':
                         $count = 0;
+
                         foreach ($parts as $part) {
                             $re = '/.+'.preg_quote($trig).'$/i';
                             if (preg_match($re, $part) === 1) {
@@ -256,6 +261,7 @@ if (txpinterface === 'admin') {
                     break;
                     case 'contains':
                         $count = 0;
+
                         foreach ($parts as $part) {
                             $re = '/.*'.preg_quote($trig).'.*$/i';
                             if (preg_match($re, $part) === 1) {
@@ -281,6 +287,7 @@ if (txpinterface === 'admin') {
             $ret = false;
             $smd_access_error = $smd_access_errcode = '';
             $smd_akey_salt_length = get_pref('smd_akey_salt_length', $smd_akey_prefs['smd_akey_salt_length']['default']);
+            $smd_akey_token_length = max(get_pref('smd_akey_token_length', $smd_akey_prefs['smd_akey_token_length']['default']), 32);
             $doip = get_pref('smd_akey_log_ip', $smd_akey_prefs['smd_akey_log_ip']['default']);
 
             if ($trigoff !== false) {
@@ -289,7 +296,7 @@ if (txpinterface === 'admin') {
                 $extraidx = $trigoff + 3;
 
                 // OK, on a trigger page, so read the token from the URL.
-                $tok = (isset($parts[$tokidx]) && strlen($parts[$tokidx]) == intval(32 + $smd_akey_salt_length)) ? $parts[$tokidx] : 0;
+                $tok = (isset($parts[$tokidx]) && strlen($parts[$tokidx]) == intval($smd_akey_token_length + $smd_akey_salt_length)) ? $parts[$tokidx] : 0;
 
                 trace_add('[smd_access_key token: ' . $tok .']');
 
@@ -337,7 +344,7 @@ if (txpinterface === 'admin') {
                             $secret = $secring['secret'];
 
                             // Extract the salt from the token.
-                            $plen = strlen($page) % 32;
+                            $plen = strlen($page) % $smd_akey_token_length;
                             $salt = substr($tok, $plen, $smd_akey_salt_length);
                             $tok = substr($tok, 0, $plen).substr($tok, $plen+$smd_akey_salt_length);
                             $ext = (($extras) ? urldecode(join('/', $extras)) : '');
@@ -984,15 +991,34 @@ function prefs_link()
 }
 
 /**
- * Jump to the prefs panel.
+ * Jump to the prefs panel from the Plugin options link.
  *
  * @return HTML Page sub-content.
  */
-function smd_akey_prefs()
+function smd_akey_options()
 {
     $link = prefs_link();
 
     header('Location: ' . $link);
+}
+
+/**
+ * Install prefs if they don't already exist.
+ *
+ * @param  string $evt Textpattern event (panel)
+ * @param  string $stp Textpattern step (action)
+ */
+function smd_akey_prefs($evt, $stp)
+{
+    global $smd_akey_event;
+
+    $smd_akey_prefs = smd_akey_get_prefs();
+
+    foreach ($smd_akey_prefs as $key => $prefobj) {
+        if (get_pref($key) === '') {
+            set_pref($key, doSlash($prefobj['default']), $smd_akey_event, $prefobj['type'], $prefobj['html'], $prefobj['position'], $prefobj['visibility']);
+        }
+    }
 }
 
 /**
@@ -1008,18 +1034,28 @@ function smd_akey_get_prefs()
             'type'     => PREF_PLUGIN,
             'position' => 10,
             'default'  => '3600',
+            'visibility' => PREF_GLOBAL,
         ),
         'smd_akey_salt_length' => array(
             'html'     => 'text_input',
             'type'     => PREF_PLUGIN,
             'position' => 20,
             'default'  => '8',
+            'visibility' => PREF_GLOBAL,
+        ),
+        'smd_akey_token_length' => array(
+            'html'     => 'text_input',
+            'type'     => PREF_PLUGIN,
+            'position' => 30,
+            'default'  => '32',
+            'visibility' => PREF_GLOBAL,
         ),
         'smd_akey_log_ip' => array(
             'html'     => 'yesnoradio',
             'type'     => PREF_PLUGIN,
-            'position' => 30,
+            'position' => 40,
             'default'  => '0',
+            'visibility' => PREF_GLOBAL,
         ),
     );
 
@@ -1236,6 +1272,7 @@ function smd_access_key($atts, $thing = null)
         $hasSSL = function_exists('openssl_random_pseudo_bytes');
 
         $smd_akey_salt_length = get_pref('smd_akey_salt_length', $smd_akey_prefs['smd_akey_salt_length']['default']);
+        $smd_akey_token_length = max(get_pref('smd_akey_token_length', $smd_akey_prefs['smd_akey_token_length']['default']), 32);
 
         // Without a URL, assume current page.
         $page = rtrim( (($url) ? $url : serverSet('REQUEST_URI')), '/');
@@ -1265,7 +1302,8 @@ function smd_access_key($atts, $thing = null)
             $salt = substr($strength, 0, $smd_akey_salt_length);
         }
 
-        $plen = strlen($page) % 32; // Because 32 is the size of an md5 string and we don't want to fall off the end.
+        // Mod token length because we don't want to fall off the end.
+        $plen = strlen($page) % $smd_akey_token_length;
 
         // Generate a timestamp. The clock starts ticking from this moment.
         $ts = ($start) ? safe_strtotime($start) : time();
@@ -1276,11 +1314,13 @@ function smd_access_key($atts, $thing = null)
         if ($expires) {
             // Relative offset from the start time, or an absolute expiry?
             $rel = (strpos($expires, '+') === 0) ? true : false;
+
             if ($rel) {
                 $exp = safe_strtotime($expires, $ts);
             } else {
                 $exp = safe_strtotime($expires);
             }
+
             if ($exp !== false) {
                 $t_hex .= '-' . dechex($exp);
             }
@@ -1309,6 +1349,7 @@ function smd_access_key($atts, $thing = null)
 
         // Create the raw token...
         $token = md5($salt.$secret.$page.$trigger.$t_hex.$max.$extra);
+
         // ... and insert the salt partway through.
         $salty_token = substr($token, 0, $plen) . $salt . substr($token, $plen);
         $tokensep = ($section_mode) ? '?' : '/';
@@ -1397,11 +1438,11 @@ h2. Installation / uninstallation
 
 p(important). Requires TXP 4.7.0+
 
-Download the plugin from either "textpattern.org":http://textpattern.org/plugins/1222/smd_access_keys, or the "software page":http://stefdawson.com/sw, paste the code into the TXP _Admin->Plugins_ pane, install and enable the plugin. The table will be installed automatically unless you use the plugin from the cache directory; in which case, visit the _Extensions->Access keys_ tab and click the _Install table_ button before trying to use the plugin.
+Download the plugin from either "textpattern.org":https://textpattern.org/plugins/1222/smd_access_keys, or the "software page":https://stefdawson.com/sw, paste the code into the TXP _Admin->Plugins_ pane, install and enable the plugin. The table will be installed automatically unless you use the plugin from the cache directory; in which case, visit the _Extensions->Access keys_ tab and click the _Install table_ button before trying to use the plugin.
 
 To uninstall the plugin, delete from the _Admin->Plugins_ page. The access keys table will be deleted automatically.
 
-Visit the "forum thread":http://forum.textpattern.com/viewtopic.php?id=35996 for more info or to report on the success or otherwise of the plugin.
+Visit the "forum thread":https://forum.textpattern.com/viewtopic.php?id=35996 for more info or to report on the success or otherwise of the plugin.
 
 h2. Overview
 
@@ -1428,7 +1469,7 @@ Generates an access token for a given URL. Configure it using the following attr
 : This string is added to your url so the plugin knows it is protected content.
 : Default: @smd_akey@
 ; %site_name%
-: Whether to automatically add the site name (http://site.com) to the URL or not. Choose from:
+: Whether to automatically add the site name (https://site.com) to the URL or not. Choose from:
 :: 0: leave the site out
 :: 1: add the site URL (but only if its not in the URL already)
 : Default: 1
@@ -1473,7 +1514,7 @@ bc. <txp:smd_access_key
 
 This might generate an access-controlled URL such as the following (newlines just for clarity):
 
-bc. http://site.com/music/next-big-hit/demo/
+bc. https://site.com/music/next-big-hit/demo/
      42c531d13423eecaaab73a2df43a8b7c337a360a/4d9d12a5
 
 Send that link to your friend and she'll be able to listen to your cool new demo song.
@@ -1595,7 +1636,7 @@ Display access information from the current protected page. Attributes:
 : Whether to escape HTML entities such as @<@, @>@ and @&@ in the item. Set @escape=""@ to turn this off.
 : Defualt: @html@
 ; %format%
-: If displaying a time-related item (now, issued, or expires) you can format it using the "strftime() formatting codes":http://php.net/manual/en/function.strftime.php.
+: If displaying a time-related item (now, issued, or expires) you can format it using the "strftime() formatting codes":https://php.net/manual/en/function.strftime.php.
 : Default: @%Y-%m-%d %H:%M:%S@
 ; %wraptag%
 : HTML tag (without angle brackets) to wrap around the output.
@@ -1631,6 +1672,9 @@ The plugin exposes some global preference settings that govern its operation:
 ; %Salt length%
 : Number of characters to use as a salt in your secret key. The default is usually fine but if you want to alter this for greater/reduced security then do so. IMPORTANT: if you change this value, all your existing access keys become instantly invalid.
 : Default: 8
+; %Access key length%
+: Number of characters to use as a token in your final key. The default delivers fairly long URLs so if you prefer to shorten this for ease of use, then do so. IMPORTANT notes: a) if you change this value, all your existing access keys become instantly invalid. b) the shorter the value, the easier it will be to crack.
+: Default: 32
 ; %Log IP addresses%
 : Whether you wish the plugin to log the IP address of each visitor who tries to access a protected resource
 : Default: no
@@ -1747,7 +1791,7 @@ p. Ta da!
 
 h2. Author
 
-Written by "Stef Dawson":http://stefdawson.com/contact.
+Written by "Stef Dawson":https://stefdawson.com/contact.
 # --- END PLUGIN HELP ---
 -->
 <?php
