@@ -56,7 +56,7 @@ $plugin['flags'] = '3';
 
 $plugin['textpack'] = <<<EOT
 #@smd_akey
-#@language en
+#@language en-gb
 smd_akey => Access keys
 smd_akey_accesses => Access attempts
 smd_akey_btn_new => New key
@@ -91,7 +91,7 @@ smd_akey_tbl_removed => Table removed
 smd_akey_time => Issued
 smd_akey_trigger => Trigger
 #@smd_akey
-#@language it
+#@language it-it
 smd_akey => Chiavi di accesso
 smd_akey_accesses => Tentativi di accesso
 smd_akey_btn_new => Nuova chiave
