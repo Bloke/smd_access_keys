@@ -748,32 +748,16 @@ function smd_akey($msg = '')
         $limit = $paginator->getLimit();
         list($page, $offset, $numPages) = pager($total, $limit, $page);
 
-        if ($total < 1 && $criteria != 1) {
-            $contentBlock .= graf(
-                    span(null, array('class' => 'ui-icon ui-icon-info')).' '.
-                    gTxt('no_results_found'),
-                    array('class' => 'alert-block information')
-                );
-        } else {
-            // Retrieve the secret keyring table entries.
-            $secring = safe_rows('*', SMD_AKEYS, "$criteria order by $sort_sql limit $offset, $limit");
-
-            $contentBlock .= script_js(<<<EOC
+        $contentBlock .= script_js(<<<EOC
 jQuery(function() {
     jQuery('#smd_akey_container').on('click', '.smd_akey_btn_new', function(ev) {
         ev.preventDefault();
         var box = jQuery("#smd_akey_create");
-
-        if (box.css('display') == 'none') {
-            box.css('display','table-row');
-        } else {
-            box.hide();
-        }
-
+        box.toggleClass('ui-helper-hidden');
         jQuery("input.smd_focus").focus();
     });
 
-    jQuery("#smd_akey_add").click(function(ev) {
+    jQuery("#smd_akey_add").on('click', function(ev) {
         ev.preventDefault();
         step = '';
         jQuery("[name=step]").val('smd_akey_create');
@@ -783,72 +767,87 @@ jQuery(function() {
 EOC
             );
 
-            // Access key list.
-            $headers = array(
-                'page'     => 'page',
-                'triggah'  => 'smd_akey_trigger',
-                'time'     => 'smd_akey_time',
-                'expires'  => 'expires',
-                'maximum'  => 'smd_akey_max',
-                'accesses' => 'smd_akey_accesses',
-            );
+        // Access key list.
+        $headers = array(
+            'page'     => 'page',
+            'triggah'  => 'smd_akey_trigger',
+            'time'     => 'smd_akey_time',
+            'expires'  => 'expires',
+            'maximum'  => 'smd_akey_max',
+            'accesses' => 'smd_akey_accesses',
+        );
 
-            if ($showip) {
-                $headers['ip'] = 'IP';
+        if ($showip) {
+            $headers['ip'] = 'IP';
+        }
+
+        $dates = array('time', 'expires');
+
+        $head_row = hCell(
+            fInput('checkbox', 'select_all', 0, '', '', '', '', '', 'select_all'),
+                '', 'class="txp-list-col-multi-edit" scope="col" title="'.gTxt('toggle_all_selected').'"'
+        );
+
+        foreach ($headers as $header => $column_head) {
+            if ($header == 'expires') {
+                $head_row .= hcell(gTxt($column_head), $header, ' class="date time" data-col="expires"');
+            } else {
+                $head_row .= column_head(array(
+                        'options' => array(
+                            'class' => trim('txp-list-col-'.$header.($header == $sort ? " $dir" : '').(in_array($header, $dates) ? ' date' : ''))),
+                        'value'   => $column_head,
+                        'sort'    => $header,
+                        'event'   => 'smd_akey',
+                        'step'    => 'smd_akey',
+                        'is_link' => true,
+                        'dir'     => $switch_dir,
+                        'crit'    => $crit,
+                        'method'  => $search_method,
+                    ));
             }
+        }
 
-            $dates = array('time', 'expires');
+        $contentBlock .= n.tag_start('form', array(
+                'class'  => 'multi_edit_form',
+                'id'     => 'smd_akey_form',
+                'name'   => 'longform',
+                'method' => 'post',
+                'action' => 'index.php',
+            )).
+            n.tag_start('div', array('class' => 'txp-listtables')).
+            n.tag_start('table', array('class' => 'txp-list')).
+            n.tag_start('thead').
+            tr($head_row).
+            n.tag_end('thead');
 
-            $head_row = hCell(
-                fInput('checkbox', 'select_all', 0, '', '', '', '', '', 'select_all'),
-                    '', 'class="txp-list-col-multi-edit" scope="col" title="'.gTxt('toggle_all_selected').'"'
-            );
+        $contentBlock .= n.tag_start('tbody');
 
-            foreach ($headers as $header => $column_head) {
-                if ($header == 'expires') {
-                    $head_row .= hcell(gTxt($column_head), $header, ' class="date time" data-col="expires"');
-                } else {
-                    $head_row .= column_head(array(
-                            'options' => array(
-                                'class' => trim('txp-list-col-'.$header.($header == $sort ? " $dir" : '').(in_array($header, $dates) ? ' date' : ''))),
-                            'value'   => $column_head,
-                            'sort'    => $header,
-                            'event'   => 'smd_akey',
-                            'step'    => 'smd_akey',
-                            'is_link' => true,
-                            'dir'     => $switch_dir,
-                            'crit'    => $crit,
-                            'method'  => $search_method,
-                        ));
-                }
-            }
+        // New access key row.
+        $contentBlock .= '<tr id="smd_akey_create" class="ui-helper-hidden">';
+        $contentBlock .= td(fInput('submit', 'smd_akey_add', gTxt('add'), 'smallerbox', '', '', '', '', 'smd_akey_add'))
+            .td(fInput('text', 'smd_akey_newpage', '', 'smd_focus', '', '', '50'))
+            .td(fInput('text', 'smd_akey_triggah', ''))
+            .td(fInput('text', 'smd_akey_time', safe_strftime('%Y-%m-%d %H:%M:%S'), '', '', '', '25'))
+            .td(fInput('text', 'smd_akey_expires', '', '', '', '', '25'))
+            .td(fInput('text', 'smd_akey_maximum', '', '', '', '', '5'))
+            .td('&nbsp;')
+            . (($showip) ? td('&nbsp;') : '');
+        $contentBlock .=  '</tr>';
 
-            $contentBlock .= n.tag_start('form', array(
-                    'class'  => 'multi_edit_form',
-                    'id'     => 'smd_akey_form',
-                    'name'   => 'longform',
-                    'method' => 'post',
-                    'action' => 'index.php',
-                )).
-                n.tag_start('div', array('class' => 'txp-listtables')).
-                n.tag_start('table', array('class' => 'txp-list')).
-                n.tag_start('thead').
-                tr($head_row).
-                n.tag_end('thead');
-
-            $contentBlock .= n.tag_start('tbody');
-
-            // New access key row.
-            $contentBlock .= '<tr id="smd_akey_create" class="ui-helper-hidden">';
-            $contentBlock .= td(fInput('submit', 'smd_akey_add', gTxt('add'), 'smallerbox', '', '', '', '', 'smd_akey_add'))
-                .td(fInput('text', 'smd_akey_newpage', '', 'smd_focus', '', '', '50'))
-                .td(fInput('text', 'smd_akey_triggah', ''))
-                .td(fInput('text', 'smd_akey_time', safe_strftime('%Y-%m-%d %H:%M:%S'), '', '', '', '25'))
-                .td(fInput('text', 'smd_akey_expires', '', '', '', '', '25'))
-                .td(fInput('text', 'smd_akey_maximum', '', '', '', '', '5'))
-                .td('&nbsp;')
-                . (($showip) ? td('&nbsp;') : '');
-            $contentBlock .=  '</tr>';
+        if ($total < 1 && $criteria != 1) {
+            $contentBlock .= tr(tdcs(
+                    span(null, array('class' => 'ui-icon ui-icon-info')).' '.
+                    gTxt('no_results_found')
+                    , 7)
+                    , array('class' => 'alert-block information')
+                ).n.tag_end('tbody').
+                n.tag_end('table').
+                n.tag_end('div'). // End of .txp-listtables
+                tInput().eInput($smd_akey_event).sInput('').
+                n.tag_end('form');
+        } else {
+            // Retrieve the secret keyring table entries.
+            $secring = safe_rows('*', SMD_AKEYS, "$criteria order by $sort_sql limit $offset, $limit");
 
             // Remaining access keys.
             foreach ($secring as $secidx => $data) {
@@ -882,7 +881,7 @@ EOC
                 n.tag_end('table').
                 n.tag_end('div'). // End of .txp-listtables.
                 multi_edit($multiOpts, 'smd_akey', 'smd_akey_multi_edit', $page, $sort, $dir, $crit, $search_method).
-                tInput().
+                tInput().eInput($smd_akey_event).
                 n.tag_end('form');
         }
 
@@ -1085,7 +1084,7 @@ function smd_akey_table_install($showpane = '1')
         `maximum` int(11) default 0,
         `accesses` int(11) default 0,
         `ip` text,
-        PRIMARY KEY (`page`(15),`t_hex`(15))
+        PRIMARY KEY (`page`(14),`t_hex`)
     ) ENGINE=MyISAM";
 
     if (gps('debug')) {
@@ -1165,14 +1164,14 @@ function smd_akey_table_exist($type = '')
 
     if (!$ver || $plugins_ver['smd_access_keys'] != $ver) {
         // Increase the size of the t_hex field to allow for expiry times.
-        $ret = @safe_field("CHARACTER_MAXIMUM_LENGTH", "INFORMATION_SCHEMA.COLUMNS", "table_name = '" . PFX . SMD_AKEYS . "' AND table_schema = '" . $DB->db . "' AND column_name = 't_hex'");
+        $ret = safe_field("CHARACTER_MAXIMUM_LENGTH", "INFORMATION_SCHEMA.COLUMNS", "table_name = '" . PFX . SMD_AKEYS . "' AND table_schema = '" . $DB->db . "' AND column_name = 't_hex'");
 
         if ($ret != '17') {
             safe_alter(SMD_AKEYS, "CHANGE `t_hex` `t_hex` VARCHAR( 17 ) DEFAULT ''");
         }
 
         // Increase the size of the secret field to allow for longer keys.
-        $ret = @safe_field("CHARACTER_MAXIMUM_LENGTH", "INFORMATION_SCHEMA.COLUMNS", "table_name = '" . PFX . SMD_AKEYS . "' AND table_schema = '" . $DB->db . "' AND column_name = 'secret'");
+        $ret = safe_field("CHARACTER_MAXIMUM_LENGTH", "INFORMATION_SCHEMA.COLUMNS", "table_name = '" . PFX . SMD_AKEYS . "' AND table_schema = '" . $DB->db . "' AND column_name = 'secret'");
 
         if ($ret != '511') {
             safe_alter(SMD_AKEYS, "CHANGE `secret` `secret` VARCHAR( 511 ) DEFAULT ''");
@@ -1452,11 +1451,11 @@ a) wrapping a tag around the parts you want protecting
 b) putting a protection tag at the top of the page to protect its entirety
 c) flagging the URL as a file_download whereby it's automatically restricted to only those in possession of the key
 
-An access key is a long URL that looks like this: @site.com/some/protected/url/<trigger>/<token>/<timestamps>.<max_accesses>@. Any deviation or alteration of the token results in rejection. The secret key used to protect the resources can be automatically generated by the plugin or supplied by you. A user-configurable salt is applied as well. For best results, let the plugin choose, because then no two secret keys/salts will ever be the same, even if they protect the exact same resource.
+An access key is a long URL that looks like this: @example.org/some/protected/url/<trigger>/<token>/<timestamps>.<max_accesses>@. Any deviation or alteration of the token results in rejection. The secret key used to protect the resources can be automatically generated by the plugin or supplied by you. A user-configurable salt is applied as well. For best results, let the plugin choose, because then no two secret keys/salts will ever be the same, even if they protect the exact same resource.
 
 You can time-limit the access to the resource if you like -- from the moment the key is generated or from some arbitrary point in the future -- and/or you can limit the number of accesses (views/downloads) that resource can have. When the resource has expired, it's gone.
 
-Keys can be generated from the admin side interface (_Extensions->Access keys_) or via a public tag. The latter allows you to offer self-key generation, perhaps in response to a mem_self_register request or zem_contact_reborn form submission, or from an admin-side dashboard.
+Keys can be generated from the admin side interface (_Extensions->Access keys_) or via a public tag. The latter allows you to offer self-key generation, perhaps in response to a mem_self_register request or com_connect form submission, or from an admin-side dashboard.
 
 h2. Tag: @<txp:smd_access_key />@
 
@@ -1469,7 +1468,7 @@ Generates an access token for a given URL. Configure it using the following attr
 : This string is added to your url so the plugin knows it is protected content.
 : Default: @smd_akey@
 ; %site_name%
-: Whether to automatically add the site name (https://site.com) to the URL or not. Choose from:
+: Whether to automatically add the site name (https://example.org) to the URL or not. Choose from:
 :: 0: leave the site out
 :: 1: add the site URL (but only if its not in the URL already)
 : Default: 1
@@ -1501,7 +1500,7 @@ A few words about this tag:
 # The clock starts ticking the moment the token is generated (or at the time given in the @start@ attribute)
 # You can pass the returned access link around as often as you like to as many people as you like and it'll keep working until its expiry/access limit is met
 # Each time you create a new token (even for the same page) a new access counter is generated; any previously created tokens that still have available access attempts will continue to function until the limit is reached or they expire
-# Direct TXP file downloads can be protected too. Just supply @trigger="file_download"@ and @url="/file_download/<id>/<filename>"@. You will then not be permitted to access the site.com/file_download/<id> link without the access token being present. For this to be effective you should move your @/files@ directory out of a web-accessible location or employ an .htaccess file that forbids bypassing the @site.com/files/<filename>@ URL format. Note that TXP normally allows you to type anything after the @/id/@ as a filename and still retrieve the file; smd_access_key will not: the filename must match exactly
+# Direct TXP file downloads can be protected too. Just supply @trigger="file_download"@ and @url="/file_download/<id>/<filename>"@. You will then not be permitted to access the example.org/file_download/<id> link without the access token being present. For this to be effective you should move your @/files@ directory out of a web-accessible location or employ an .htaccess file that forbids bypassing the @example.org/files/<filename>@ URL format. Note that TXP normally allows you to type anything after the @/id/@ as a filename and still retrieve the file; smd_access_key will not: the filename must match exactly
 # If the @start@ date is mangled in any way, the key will be generated 'now'
 # If the @expires@ is mangled in any way, no epxiry will be set
 # Your secret key is salted using a randomly-generated salt, or one of your own choosing. The default length of the salt is 8 characters but you can "alter this via a pref":#smd_akey_prefs
@@ -1514,7 +1513,7 @@ bc. <txp:smd_access_key
 
 This might generate an access-controlled URL such as the following (newlines just for clarity):
 
-bc. https://site.com/music/next-big-hit/demo/
+bc. https://example.org/music/next-big-hit/demo/
      42c531d13423eecaaab73a2df43a8b7c337a360a/4d9d12a5
 
 Send that link to your friend and she'll be able to listen to your cool new demo song.

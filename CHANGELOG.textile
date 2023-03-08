@@ -1,5 +1,11 @@
 h1. Changelog
 
+h2. 1.1.0
+
+* Add token length preference.
+* Fix Add Key button when there are no keys in the table (thanks, giz).
+* Fix table creation index so it doesn't exceed the column width.
+
 h2. 1.0.0 
 
 * For 4.7.x
