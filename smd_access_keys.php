@@ -1085,7 +1085,7 @@ function smd_akey_table_install($showpane = '1')
         `maximum` int(11) default 0,
         `accesses` int(11) default 0,
         `ip` text,
-        PRIMARY KEY (`page`,`t_hex`)
+        PRIMARY KEY (`page`(15),`t_hex`(15))
     ) ENGINE=MyISAM";
 
     if (gps('debug')) {
