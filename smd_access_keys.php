@@ -1280,7 +1280,7 @@ function smd_access_key($atts, $thing = null)
             // Can't use raw hu since it contains the subdir (as does the REQUEST_URI)
             // so duplicate portions would occur in the generated URL.
             $urlparts = parse_url(hu);
-            $page = $urlparts['scheme'] . '://' . $urlparts['host'] . $page;
+            $page = $urlparts['scheme'] . '://' . $urlparts['host'] . (!empty($urlparts['port']) ? ':'.$urlparts['port'] : '') . $page;
         }
 
         if (!$secret) {
