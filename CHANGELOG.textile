@@ -1,12 +1,13 @@
 h1. Changelog
 
-h2. 1.1.0
+h2. 1.1.0 - 2023-03-09
 
 * Add token length preference.
 * Fix Add Key button when there are no keys in the table (thanks, giz).
 * Fix table creation index so it doesn't exceed the column width.
+* Better localhost support: takes the URL port into account too.
 
-h2. 1.0.0 
+h2. 1.0.0 - 2019-11-12
 
 * For 4.7.x
 * Don't use deprecated mysql_* functions.
