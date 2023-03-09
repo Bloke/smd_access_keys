@@ -1435,9 +1435,9 @@ Permit access to downloads, pages or parts of pages for a certain configurable t
 
 h2. Installation / uninstallation
 
-p(important). Requires TXP 4.7.0+
+p(important). Requires Textpattern 4.7.0+
 
-Download the plugin from either "textpattern.org":https://textpattern.org/plugins/1222/smd_access_keys, or the "software page":https://stefdawson.com/sw, paste the code into the TXP _Admin->Plugins_ pane, install and enable the plugin. The table will be installed automatically unless you use the plugin from the cache directory; in which case, visit the _Extensions->Access keys_ tab and click the _Install table_ button before trying to use the plugin.
+Download the plugin from either "the official Textpattern plugin repository":https://plugins.textpattern.com/plugins/smd_access_keys, the "software page":https://stefdawson.com/smd_access_keys, or "GitHub":https://github.com/Bloke/smd_access_keys/releases, paste the code into the TXP _Admin->Plugins_ pane, install and enable the plugin. The table will be installed automatically unless you use the plugin from the cache directory; in which case, visit the _Extensions->Access keys_ tab and click the _Install table_ button before trying to use the plugin.
 
 To uninstall the plugin, delete from the _Admin->Plugins_ page. The access keys table will be deleted automatically.
 
@@ -1633,7 +1633,7 @@ Display access information from the current protected page. Attributes:
 : Default: @page@
 ; %escape%
 : Whether to escape HTML entities such as @<@, @>@ and @&@ in the item. Set @escape=""@ to turn this off.
-: Defualt: @html@
+: Default: @html@
 ; %format%
 : If displaying a time-related item (now, issued, or expires) you can format it using the "strftime() formatting codes":https://php.net/manual/en/function.strftime.php.
 : Default: @%Y-%m-%d %H:%M:%S@
