@@ -17,7 +17,7 @@ $plugin['name'] = 'smd_access_keys';
 // 1 = Plugin help is in raw HTML.  Not recommended.
 # $plugin['allow_html_help'] = 1;
 
-$plugin['version'] = '1.1.0';
+$plugin['version'] = '1.1.1';
 $plugin['author'] = 'Stef Dawson';
 $plugin['author_uri'] = 'https://stefdawson.com/';
 $plugin['description'] = 'Permit access to content for a certain time period/number of access attempts';
@@ -80,6 +80,7 @@ smd_akey_prefs_some_explain => This is either a new installation or a different 
 smd_akey_prefs_some_opts => Click "Install table" to add or update the table leaving all existing data untouched.
 smd_akey_prefs_some_tbl => Not all table info available.
 smd_akey_salt_length => Salt length (characters)
+smd_akey_search => Search access keys
 smd_akey_tbl_installed => Table installed
 smd_akey_tbl_install_lbl => Install table
 smd_akey_tbl_not_installed => Table not installed
@@ -142,7 +143,7 @@ if (!defined('txpinterface'))
  *       -> File download keys can be deleted on any key access (expiry window is known via prefs).
  *       -> Other key accesses can only be deleted when that key is used.
  *       -> Configurable grace period after expiry, before deletion.
- * @todo Obfusctaed URLs?
+ * @todo Obfuscated URLs?
  * @todo Query an access key and separate it into its component parts for convenient testing.
  * @todo Make a single key to cover /category/type URLs somehow?
  */
@@ -700,12 +701,12 @@ function smd_akey($msg = '')
             'maximum' => array(
                 'column' => SMD_AKEYS.'.maximum',
                 'label'  => gTxt('smd_akey_max'),
-                'type'   => 'integer',
+                'type'   => 'numeric',
             ),
             'accesses' => array(
                 'column' => SMD_AKEYS.'.accesses',
                 'label'  => gTxt('smd_akey_accesses'),
-                'type'   => 'integer',
+                'type'   => 'numeric',
             ),
         );
 
@@ -720,7 +721,7 @@ function smd_akey($msg = '')
 
         list($criteria, $crit, $search_method) = $search->getFilter();
 
-        $search_render_options = array('placeholder' => 'search_access_keys');
+        $search_render_options = array('placeholder' => 'smd_akey_search');
         $total = safe_count(SMD_AKEYS, $criteria);
 
         $searchBlock =
@@ -893,7 +894,7 @@ EOC
         // No Ajax updates or it breaks the 'New key' button after an Ajax call.
         $html_id = '';
         $heading = $event;
-        echo $table->render(compact('heading', 'total', 'criteria', 'html_id'), $searchBlock, $createBlock, $contentBlock, $pageBlock);
+        echo $table->render(compact('heading', 'total', 'crit', 'html_id'), $searchBlock, $createBlock, $contentBlock, $pageBlock);
     } else {
         // Table not installed.
         $out = n.'<div class="txp-layout">'.

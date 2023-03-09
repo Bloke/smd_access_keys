@@ -1,5 +1,10 @@
 h1. Changelog
 
+h2. 1.1.1 - 
+
+* Improve key search.
+* Fix 'Clear search' link missing when search returns no hits.
+
 h2. 1.1.0 - 2023-03-09
 
 * Add token length preference.
