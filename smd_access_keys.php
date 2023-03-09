@@ -207,7 +207,7 @@ if (txpinterface === 'admin') {
                 $urlparts = parse_url(hu);
                 // Can't use raw hu since it contains the subdir (as does the REQUEST_URI)
                 // so duplicates would occur in the generated URL.
-                $url = $urlparts['scheme'] . '://' . $urlparts['host'] . $url;
+                $url = $urlparts['scheme'] . '://' . $urlparts['host'] . (!empty($urlparts['port']) ? ':'.$urlparts['port'] : '') . $url;
             }
 
             if ($section_mode == '1') {
