@@ -71,7 +71,7 @@ A few words about this tag:
 # Each time you create a new token (even for the same page) a new access counter is generated; any previously created tokens that still have available access attempts will continue to function until the limit is reached or they expire
 # Direct TXP file downloads can be protected too. Just supply @trigger="file_download"@ and @url="/file_download/<id>/<filename>"@. You will then not be permitted to access the example.org/file_download/<id> link without the access token being present. For this to be effective you should move your @/files@ directory out of a web-accessible location or employ an .htaccess file that forbids bypassing the @example.org/files/<filename>@ URL format. Note that TXP normally allows you to type anything after the @/id/@ as a filename and still retrieve the file; smd_access_key will not: the filename must match exactly
 # If the @start@ date is mangled in any way, the key will be generated 'now'
-# If the @expires@ is mangled in any way, no epxiry will be set
+# If the @expires@ is mangled in any way, no expiry will be set
 # Your secret key is salted using a randomly-generated salt, or one of your own choosing. The default length of the salt is 8 characters but you can "alter this via a pref":#smd_akey_prefs
 # You may control the expiry time of _all_ of your direct file_download URLs by altering a "pref":#smd_akey_prefs
 
